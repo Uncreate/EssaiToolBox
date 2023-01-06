@@ -27,4 +27,4 @@ def rename_files(root_dir):
 while True:
     rename_files("C:\\Users\\adam.riggs\\Documents\\EssaiToolBox\\Data\\tooldott\\")
     # Sleep for 60 seconds before running the loop again
-    time.sleep(5)
+    time.sleep(60*15)
