@@ -1,0 +1,8 @@
+:HP-26
+ping 192.168.71.92
+on ERROR E20001406 GOTO HP-03
+connect I 192.168.71.92 -F
+:FILE
+get TNC:\Tool.t C:\Users\adam.riggs\Documents\EssaiToolBox\Data\tooldott\HP-26\tool.t
+sleep 10
+on always goto FILE

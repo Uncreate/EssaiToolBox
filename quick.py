@@ -1,11 +1,4 @@
-[PATHS]
-tool_t_path = ./Data/tooldott/
-ecp = C:\EssaiControlPanel\EssaiControlPanel.exe
-graph_storage = ./Data/plots/
-
-[IP Adressess]
-"machines": [
-    {
+machines =[{
       "location": "Phoenix",
       "Controller": "HEID_530",
       "Name": "HP-01",
@@ -160,4 +153,18 @@ graph_storage = ./Data/plots/
       "Controller": "HEID_640",
       "Name": "HP-26",
       "IP": "192.168.71.92"
-    }
+    }]
+
+for machine in machines:
+    name = machine["Name"]
+    ip = machine["IP"]
+
+    with open(f".\\Data\\tnccmd\\{name}.tnccmd", "w") as f:
+        f.write(f":{name}\n")
+        f.write(f"ping {ip}\n")
+        f.write("on ERROR E20001406 GOTO HP-03\n")
+        f.write(f"connect I {ip} -F\n")
+        f.write(":FILE\n")
+        f.write(f"get TNC:\\Tool.t C:\\Users\\adam.riggs\\Documents\\EssaiToolBox\\Data\\tooldott\\{name}\\tool.t\n")
+        f.write("sleep 10\n")
+        f.write("on always goto FILE\n")

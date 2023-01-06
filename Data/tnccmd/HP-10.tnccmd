@@ -1,0 +1,8 @@
+:HP-10
+ping 192.168.203.202
+on ERROR E20001406 GOTO HP-03
+connect I 192.168.203.202 -F
+:FILE
+get TNC:\table\Tool.t C:\Users\adam.riggs\Documents\EssaiToolBox\Data\tooldott\HP-10\tool.t
+sleep 10
+on always goto FILE
