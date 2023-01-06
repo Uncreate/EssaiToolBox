@@ -1,16 +1,20 @@
 import tkinter as tk
 from tkinter import ttk
 import configparser
+
+# Import modules
 from rename_module import rename_files
 import tool_table_parser as ttp
-#Load Configuration File
+from graph_display import MyFrame
+
+# Load Configuration File
 config = configparser.ConfigParser()
 config.read('config.ini')
 
 tooldott_path = config['PATHS']['tool_t_path']
 ecp_path = config['PATHS']['ecp']
 
-# Define Our Functions
+# Define Functions
 def on_rename_clicked():
     statusvar.set("Executing Protocol: 1375")
     sbar.update()
@@ -20,7 +24,6 @@ def on_rename_clicked():
 def ecp_run():
     statusvar.set("Executing Protocol: Anthony Da Man")
     sbar.update()
-    # Call EssaiControlPanel.exe using the path from the config file
     import subprocess
     subprocess.run([ecp_path])
     statusvar.set("Awaiting Your Command")
@@ -30,38 +33,39 @@ def tool_dot_t():
     sbar.update()
     ttp.main()
     statusvar.set("Awaiting Your Command")
+
 def about():
     about = tk.Toplevel(root)
     about.geometry("250x250")
-    text1= tk.Label(about, text="Essai Tool Box")
-    text2= tk.Label(about, text="Created by 3v3r 0dd")
-    text3=tk.Label(about, text="Copyright 2023")
-    text1.pack(pady=(20,5))
-    text2.pack(pady=(20,0))
-    text3.pack(pady=(0,10))
+    tk.Label(about, text="Essai Tool Box").pack(pady=(20,5))
+    tk.Label(about, text="Created by 3v3r 0dd").pack(pady=(20,0))
+    tk.Label(about, text="Copyright© 2023").pack(pady=(0,10))
 
-root=tk.Tk()
-root.geometry("400x400")
+def raise_frame():
+    frame = MyFrame(root)
+    frame.tkraise()
+
+# Create Root Window
+root = tk.Tk()
+root.geometry("1200x800")
 root.title("Essai Tool Box")
 
-# Create a menu bar
+# Create Menu Bar
 menu_bar = tk.Menu(root)
-
-# Create a Utilities menu and add it to the menu bar
 utility_menu = tk.Menu(menu_bar, tearoff=0)
 utility_menu.add_command(label="Rename Tool.T Files", command=on_rename_clicked)
 utility_menu.add_command(label="Graph DL and DR values ", command=tool_dot_t)
 utility_menu.add_command(label="Run Essai Control Panel", command=ecp_run)
 menu_bar.add_cascade(label="Utilities", menu=utility_menu)
-# Add an EXIT command
 menu_bar.add_command(label="About", command=about)
 menu_bar.add_command(label="Exit", command=root.destroy)
-# Set the menu bar as the root window's menu bar
 root.config(menu=menu_bar)
 
+# Create Button
+button = tk.Button(root, text="Raise MyFrame", command=raise_frame)
+button.pack()
 
-
-# Create a status bar at the bottom of the window.
+# Create Status Bar
 statusvar = tk.StringVar()
 statusvar.set("Awaiting Your Command")
 sbar = tk.Label(root, textvariable=statusvar, relief=tk.SUNKEN, anchor="e")
