@@ -1,8 +1,7 @@
 :HP-22
 ping 192.168.203.219
-on ERROR E20001406 GOTO HP-03
 connect I 192.168.203.219 -F
 :FILE
-get TNC:\table\Tool.t C:\Users\adam.riggs\Documents\EssaiToolBox\Data\tooldott\HP-22\tool.t
-sleep 10
+get TNC:\table\Tool.t ./Data/tooldott/HP-22/tool.t
+sleep 900
 on always goto FILE

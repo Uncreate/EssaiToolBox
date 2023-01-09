@@ -1,8 +1,7 @@
 :HP-01
 ping 192.168.201.203
-on ERROR E20001406 GOTO HP-03
 connect I 192.168.201.203 -F
 :FILE
-get TNC:\Tool.t C:\Users\adam.riggs\Documents\EssaiToolBox\Data\tooldott\HP-01\tool.t
-sleep 10
+get TNC:\Tool.t ./Data/tooldott/HP-01/tool.t
+sleep 900
 on always goto FILE
