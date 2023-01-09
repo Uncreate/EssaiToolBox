@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import configparser
-
+import threading
 # Import modules
 
 import tool_table_parser as ttp
@@ -15,12 +15,19 @@ tooldott_path = config['PATHS']['tool_t_path']
 ecp_path = config['PATHS']['ecp']
 
 # Define Functions
+import threading
+
 def ecp_run():
-    statusvar.set("Busy...")
-    sbar.update()
+    # Create a new thread
+    thread = threading.Thread(target=ecp_run_thread)
+    # Start the thread
+    thread.start()
+
+def ecp_run_thread():
     import subprocess
     subprocess.run([ecp_path])
-    statusvar.set("Ready...")
+    
+
 
 def tool_dot_t():
     statusvar.set("Busy..")
@@ -38,6 +45,7 @@ def about():
 def raise_frame():
     frame = MyFrame(root)
     frame.tkraise()
+
 
 # Create Root Window
 root = tk.Tk()
