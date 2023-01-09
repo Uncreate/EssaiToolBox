@@ -1,9 +1,2 @@
-Data/tooldott/HP-11/tool.t
-Data/tooldott/HP-16/tool.t
-Data/tooldott/HP-17/tool.t
-Data/tooldott/HP-18/tool.t
-Data/tooldott/HP-19/tool.t
-Data/tooldott/HP-20/tool.t
-Data/tooldott/HP-21/tool.t
-Data/tooldott/HP-22/tool.t
-Data/tooldott/HP-24/tool.t
+*.t
+*.T
