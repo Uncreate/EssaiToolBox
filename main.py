@@ -15,8 +15,6 @@ tooldott_path = config['PATHS']['tool_t_path']
 ecp_path = config['PATHS']['ecp']
 
 # Define Functions
-import threading
-
 def ecp_run():
     # Create a new thread
     thread = threading.Thread(target=ecp_run_thread)
