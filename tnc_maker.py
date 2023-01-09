@@ -1,3 +1,6 @@
+'''
+Just a quick script to write TNCcmd files for downloading Tool.t Files from the controller - AR 1/23
+'''
 machines =[{
       "location": "Phoenix",
       "Controller": "HEID_530",

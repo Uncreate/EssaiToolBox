@@ -1,5 +1,6 @@
 import os
 import time
+import configparser
 
 def get_modified_date(file_path):
     # Get the modified time of the file
@@ -23,8 +24,17 @@ def rename_files(root_dir):
                 new_file_name = f"{base}_{modified_date}{extension}"
                 os.rename(file_path, new_file_name)
 
+# Parse the configuration file
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# Get the root directory path from the configuration file
+root_dir = config['PATHS']['tool_t_path']
+
+# Wait 2 mins before starting the process to allow time for files to be downloaded
+time.sleep(120)
 # Run the rename_files function in a loop
 while True:
-    rename_files("C:\\Users\\adam.riggs\\Documents\\EssaiToolBox\\Data\\tooldott\\")
-    # Sleep for 60 seconds before running the loop again
-    time.sleep(60*15)
+    rename_files(root_dir)
+    # Sleep for 900 seconds (15 mins) before running the loop again
+    time.sleep(900)
