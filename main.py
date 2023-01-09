@@ -3,7 +3,7 @@ from tkinter import ttk
 import configparser
 
 # Import modules
-from rename_module import rename_files
+
 import tool_table_parser as ttp
 from graph_display import MyFrame
 
@@ -15,24 +15,18 @@ tooldott_path = config['PATHS']['tool_t_path']
 ecp_path = config['PATHS']['ecp']
 
 # Define Functions
-def on_rename_clicked():
-    statusvar.set("Executing Protocol: 1375")
-    sbar.update()
-    rename_files(tooldott_path)
-    statusvar.set("Ready...")
-
 def ecp_run():
-    statusvar.set("Executing Protocol: Anthony Da Man")
+    statusvar.set("Busy...")
     sbar.update()
     import subprocess
     subprocess.run([ecp_path])
-    statusvar.set("Awaiting Your Command")
+    statusvar.set("Ready...")
 
 def tool_dot_t():
     statusvar.set("Busy..")
     sbar.update()
     ttp.main()
-    statusvar.set("Awaiting Your Command")
+    statusvar.set("Ready...")
 
 def about():
     about = tk.Toplevel(root)
@@ -53,7 +47,6 @@ root.title("Essai Tool Box")
 # Create Menu Bar
 menu_bar = tk.Menu(root)
 utility_menu = tk.Menu(menu_bar, tearoff=0)
-utility_menu.add_command(label="Rename Tool.T Files", command=on_rename_clicked)
 utility_menu.add_command(label="Graph DL and DR values ", command=tool_dot_t)
 utility_menu.add_command(label="Run Essai Control Panel", command=ecp_run)
 menu_bar.add_cascade(label="Utilities", menu=utility_menu)
