@@ -1,7 +1,10 @@
+import configparser
 import os
 import re
-import configparser
+from datetime import datetime, timedelta
+
 import matplotlib.pyplot as plt
+
 
 def load_config():
     """Load the configuration file."""
@@ -16,63 +19,100 @@ def get_directory(config):
 def get_graph_storage(config):
     return config['PATHS']['graph_storage']
 
+def plotOffsets(filename):
+    data = extract_data(filename)
+    create_figure(data)
+    plt.show()
+
+
 def extract_data(filename):
-    """Extract the tool names, DR values, and DL values from the file, ignoring rows where both values are zero."""
-    with open(filename, 'r') as f:
-        lines = f.readlines()[2:]
-    pattern = re.compile(r'^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)')
-    dr_names = []
-    dl_names = []
-    drs = []
-    dls = []
-    for line in lines:
-        if match := pattern.match(line):
-            name = match[1]
-            dr = float(match[5])
-            dl = float(match[6])
+    lines = read_file(filename)
+    threshold_date = get_threshold_date()
+    return extract_values(lines, threshold_date)
+
+def read_file(filename):
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    return lines
+
+def get_threshold_date():
+    current_date = datetime.now().date()
+    return current_date - timedelta(days=60)
+
+def extract_values(lines, threshold_date):
+    data = {"DR": [], "DL": []}
+
+    for line in lines[2:]:
+        date_obj = get_date_object(line)
+        if date_obj and date_obj > threshold_date:
+            line_data = line.split()
+            name, dl, dr = line_data[1], float(line_data[5]), float(line_data[6])
             if abs(dr) != 0:
-                dr_names.append(name)
-                drs.append(dr)
+                data["DR"].append({"name": name, "value": dr})
             elif abs(dl) != 0:
-                dl_names.append(name)
-                dls.append(dl)    
-    return dr_names,dl_names, drs, dls
+                data["DL"].append({"name": name, "value": dl}) 
+    return data
 
-def plot_data(graph_storage, filename, dr_names, dl_names, drs, dls):
-    # sourcery skip: extract-duplicate-method
-    # Create a figure and axis
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 9), layout='constrained')
+def get_date_object(line):
+    if date_str := get_date_string(line):
+        if re.search(r"\d{2}\.\d{2}\.\d{4}", date_str):
+            return datetime.strptime(date_str, '%d.%m.%Y').date()
+        elif re.search(r"\d{4}\.\d{2}\.\d{2}", date_str):
+            return datetime.strptime(date_str, '%Y.%m.%d').date()
+    return None
 
-    # Plot the DR values
-    ax1.bar(dr_names, drs)
-    ax1.set_xlabel("Tool")
-    ax1.set_ylabel("DR")
-    for i, v in enumerate(drs):
-        ax1.text(i, v, f"{v:.4f}", ha="center", va="bottom", rotation= 90)
+def get_date_string(line):
+    match1 = re.search(r"\d{2}\.\d{2}\.\d{4}", line)
+    match2 = re.search(r"\d{4}\.\d{2}\.\d{2}", line)
+    if match1:
+        return match1.group()
+    elif match2:
+        return match2.group()
+    return None
 
-    # Plot the DL values
-    ax2.bar(dl_names, dls)
-    ax2.set_xlabel("Tool")
-    ax2.set_ylabel("DL")
-    for i, v in enumerate(dls):
-        ax2.text(i, v, f"{v:.4f}", ha="center", va="bottom", rotation= 90)
 
-    # Tighten layout and show plot
-    plt.xticks(rotation = 45)
-    plt.suptitle(filename)
-    fig.savefig(os.path.join(graph_storage, f"{filename}.png"))
 
-    
-    plt.close()
+def create_figure(data):
+    # Create a figure with 2 subplots (1 row, 2 columns)
+    fig, axs = plt.subplots(1, 2, figsize=(20, 7))
+
+    # Plotting DR values on the first subplot
+    dr_names = [d["name"] for d in data["DR"]]
+    dr_values = [d["value"] for d in data["DR"]]
+    axs[0].set_xticklabels(dr_names, rotation=45, ha="right")
+    axs[0].bar(dr_names, dr_values)
+    axs[0].set_xlabel('Name')
+    axs[0].set_ylabel('DR')
+    axs[0].set_title('DR values for the last 60 days')
+    for i, v in enumerate(dr_values):
+        axs[0].text(i - 0.5, v, str(v), color='black')
+
+    # Plotting DL values on the second subplot
+    dl_names = [d["name"] for d in data["DL"]]
+    dl_values = [d["value"] for d in data["DL"]]
+    axs[1].set_xticklabels(dl_names, rotation=45, ha="right")
+    axs[1].bar(dl_names, dl_values)
+    axs[1].set_xlabel('Name')
+    axs[1].set_ylabel('DL')
+    axs[1].set_title('DL values for the last 60 days')
+    for i, v in enumerate(dl_values):
+        axs[1].text(i - 0.5, v, str(v), color='black')
+
+    plt.tight_layout()
+
+
 def main():
     config = load_config()
     directory = get_directory(config)
     graph_storage = get_graph_storage(config)
     filenames = os.listdir(directory)
-    for filename in filenames:
-        full_path = os.path.join(directory, filename)
-        dr_names, dl_names, drs, dls = extract_data(full_path)
-        plot_data(graph_storage, filename, dr_names, dl_names, drs, dls)
+    number_of_days = timedelta(days=90)
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".t"):
+                full_path = os.path.join(root, file)
+                plotOffsets(full_path)
+
 
 if __name__ == '__main__':
     main()
