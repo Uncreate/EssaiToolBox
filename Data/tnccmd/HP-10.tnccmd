@@ -2,6 +2,6 @@
 ping 192.168.203.202
 connect I 192.168.203.202 -F
 :FILE
-get TNC:\table\Tool.t ./Data/tooldott/HP-10/tool.t
+get TNC:\table\Tool.t ./Data/tooldott/HP-10-tool.t
 sleep 900
 on always goto FILE

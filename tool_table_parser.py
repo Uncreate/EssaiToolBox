@@ -2,7 +2,7 @@ import configparser
 import os
 import re
 from datetime import datetime, timedelta
-
+import json
 import matplotlib.pyplot as plt
 
 
@@ -28,7 +28,18 @@ def plotOffsets(filename):
 def extract_data(filename):
     lines = read_file(filename)
     threshold_date = get_threshold_date()
-    return extract_values(lines, threshold_date)
+    data = extract_values(lines, threshold_date)
+    directory = os.path.dirname(filename)
+    json_path = os.path.join(directory, 'data.json')
+    if not os.path.exists(json_path):
+        open(json_path, "x").close()
+    with open(json_path, "r+") as f:
+        f.seek(0, 2)
+        if f.tell() > 0:
+            f.write(',')
+        json.dump(data, f)
+    return data
+
 
 def read_file(filename):
     with open(filename, "r") as f:

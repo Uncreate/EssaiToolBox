@@ -22,8 +22,8 @@ for machine in machines:
         f.write(f"connect I {ip} -F\n")
         f.write(":FILE\n")
         if controller == "HEID_530":
-          f.write(f"get TNC:\\Tool.t {root_dir}{name}/tool.t\n")
+          f.write(f"get TNC:\\Tool.t {root_dir}{name}-tool.t\n")
         else:
-          f.write(f"get TNC:\\table\\Tool.t {root_dir}{name}/tool.t\n")
+          f.write(f"get TNC:\\table\\Tool.t {root_dir}{name}-tool.t\n")
         f.write("sleep 900\n")
         f.write("on always goto FILE\n")

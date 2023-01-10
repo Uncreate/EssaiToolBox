@@ -1,4 +1,4 @@
-start "" "C:\Users\adam.riggs\AppData\Local\Programs\Python\Python310\python.exe" "C:\Users\adam.riggs\Documents\EssaiToolBox\appendtime.py"
+
 start "HP-01" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-01.tnccmd
 
 start "HP-02" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-02.tnccmd

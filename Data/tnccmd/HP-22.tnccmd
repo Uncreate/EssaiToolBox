@@ -2,6 +2,6 @@
 ping 192.168.203.219
 connect I 192.168.203.219 -F
 :FILE
-get TNC:\table\Tool.t ./Data/tooldott/HP-22/tool.t
+get TNC:\table\Tool.t ./Data/tooldott/HP-22-tool.t
 sleep 900
 on always goto FILE
