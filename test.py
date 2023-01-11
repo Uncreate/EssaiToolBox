@@ -59,8 +59,11 @@ def process_files(path):
                 if machine_name not in json_data:
                     json_data[machine_name] = {}
                 if line['name'] not in json_data[machine_name]:
-                    json_data[machine_name][line['name']] = {"DL": line['DL'], "DR": line['DR'], "last_used": line['last_used'].strftime("%Y-%m-%d")}
-
+                    json_data[machine_name][line['name']] = {line['last_used'].strftime("%Y-%m-%d"): {"DL": line['DL'], "DR": line['DR']}}
+                elif line['last_used'].strftime("%Y-%m-%d") not in json_data[machine_name][line['name']]:
+                    json_data[machine_name][line['name']][line['last_used'].strftime("%Y-%m-%d")] = {"DL": line['DL'], "DR": line['DR']}
+                elif json_data[machine_name][line['name']][line['last_used'].strftime("%Y-%m-%d")]['DL'] != line['DL'] or json_data[machine_name][line['name']][line['last_used'].strftime("%Y-%m-%d")]['DR'] != line['DR']:
+                    json_data[machine_name][line['name']][line['last_used'].strftime("%Y-%m-%d")] = {"DL": line['DL'], "DR": line['DR']}
     write_json_file(json_data, json_path)
 
 # call the process_files function to start processing the files
