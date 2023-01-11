@@ -1,55 +1,67 @@
-import subprocess
-import time
-import tkinter as tk
-import tkinter.ttk as ttk
+import os
+import json
+import re
+from datetime import datetime, timedelta
 
-program_path = "C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe"
+def read_and_parse_file(file_path):
+    """
+    Reads the content of a file and returns a list of dictionaries
+    containing the data from each line.
+    """
+    data = []
+    sixty_days_ago = datetime.now() - timedelta(days=14)
+    with open(file_path) as f:
+        lines = f.readlines()
+        for line in lines[2:]:
+            line_data = line.split()
+            if len(line_data) > 1:
+                name, dl, dr = line_data[1], float(line_data[5]), float(line_data[6])
+                if match := re.search(r'\d{4}\.\d{2}\.\d{2}', line):
+                    date = datetime.strptime(match.group(), "%Y.%m.%d")
+                    if date > sixty_days_ago and (
+                        abs(dl) != 0 or abs(dr) != 0
+                    ):
+                        data.append({"name": name, "DL": dl, "DR": dr, "last_used": date})
+    return data
+def read_json_file(json_path):
+    """
+    Read the JSON file.
+    """
+    if os.path.exists(json_path):
+        with open(json_path, "r") as f:
+            json_data = json.load(f)
+    else:
+        json_data = {}
+    return json_data
 
-procs = []
-for i in range(1, 26):
-    filename = f"./Data/tnccmd/HP-{i:02}.tnccmd"
-    window_title = f"HP-{i:02}"
-    proc = subprocess.Popen([program_path, filename], creationflags=subprocess.CREATE_NEW_CONSOLE)
-    procs.append(proc)
+def write_json_file(json_data, json_path):
+    """
+    Write the JSON data to file.
+    """
+    with open(json_path, "w") as f:
+        json.dump(json_data, f, indent=4)
 
-root = tk.Tk()
 
-class ProcessFrame(tk.Frame):
-    def __init__(self, parent, procs, *args, **kwargs):
-        tk.Frame.__init__(self, parent, *args, **kwargs)
-        self.procs = procs
-        self.labels = []
-        self.create_widgets()
+def process_files(path):
+    """
+    Iterates through all the .t files in the specified directory,
+    reads and parses their content, and updates the 'offsets.json' file.
+    """
+    json_path = os.path.join(path, 'offsets.json')
+    json_data = read_json_file(json_path)
 
-    def create_widgets(self):
-        self.dropdown = ttk.Combobox(self, values=["All"] + [f"HP-{i:02}" for i in range(1, 26)], state='readonly') #, command=self.terminate_processes)
-        self.dropdown.grid(row=0,column=0)
-        for i in range(1, 26):
-            label = tk.Label(self, text=f"HP-{i:02}")
-            label.grid(row=i+1, column=0)
-            self.labels.append(label)
-        self.update_status()
-        self.after(5000,self.update_status)
-    
-    def update_status(self):
-        for i, p in enumerate(self.procs):
-            label = self.labels[i]
-            if p.poll() is None:
-                label.config(text=f"HP-{i+1:02} (running)", background="green")
-            else:
-                label.config(text=f"HP-{i+1:02} (stopped)", background="red")
+    for file in os.listdir(path):
+        if file.endswith(".t"):
+            file_path = os.path.join(path, file)
+            data = read_and_parse_file(file_path)
+            for line in data:
+                machine_name = file[:5]
+                if machine_name not in json_data:
+                    json_data[machine_name] = {}
+                if line['name'] not in json_data[machine_name]:
+                    json_data[machine_name][line['name']] = {"DL": line['DL'], "DR": line['DR'], "last_used": line['last_used'].strftime("%Y-%m-%d")}
 
-    def terminate_processes(self):
-        selected = self.dropdown.get()
-        if selected == "All":
-            for p in self.procs:
-                if p.poll() is None:
-                    p.terminate()
-        else:
-            for i, p in enumerate(self.procs):
-                if f"HP-{i+1:02}" == selected:
-                    p.terminate()
+    write_json_file(json_data, json_path)
 
-process_frame = ProcessFrame(root, procs)
-process_frame.pack()
-root.mainloop()
+# call the process_files function to start processing the files
+process_files('./Data/tooldott')
