@@ -9,7 +9,7 @@ def read_and_parse_file(file_path):
     containing the data from each line.
     """
     data = []
-    sixty_days_ago = datetime.now() - timedelta(days=14)
+    sixty_days_ago = datetime.now() - timedelta(days=30)
     with open(file_path) as f:
         lines = f.readlines()
         for line in lines[2:]:
@@ -18,6 +18,12 @@ def read_and_parse_file(file_path):
                 name, dl, dr = line_data[1], float(line_data[5]), float(line_data[6])
                 if match := re.search(r'\d{4}\.\d{2}\.\d{2}', line):
                     date = datetime.strptime(match.group(), "%Y.%m.%d")
+                    if date > sixty_days_ago and (
+                        abs(dl) != 0 or abs(dr) != 0
+                    ):
+                        data.append({"name": name, "DL": dl, "DR": dr, "last_used": date})
+                elif match2 := re.search(r'\d{2}\.\d{2}\.\d{4}', line):
+                    date = datetime.strptime(match2.group(), "%d.%m.%Y")
                     if date > sixty_days_ago and (
                         abs(dl) != 0 or abs(dr) != 0
                     ):
