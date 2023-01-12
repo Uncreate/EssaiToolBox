@@ -1,78 +1,74 @@
 import os
+import json
 import re
-import configparser
-import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
 
-def load_config():
-    """Load the configuration file."""
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-    return config
+def read_and_parse_file(file_path):
+    """
+    Reads the content of a file and returns a list of dictionaries
+    containing the data from each line.
+    """
+    data = []
+    sixty_days_ago = datetime.now() - timedelta(days=30)
+    with open(file_path) as f:
+        lines = f.readlines()
+        for line in lines[2:]:
+            line_data = line.split()
+            if len(line_data) > 1:
+                name, dl, dr = line_data[1], float(line_data[5]), float(line_data[6])
+                if match := re.search(r'\d{2}:\d{2}', line):
+                    time = match.group()
+                    if match := re.search(r'\d{4}\.\d{2}\.\d{2}', line):
+                        date = datetime.strptime(match.group(), "%Y.%m.%d")
+                        if date > sixty_days_ago and (abs(dl) != 0 or abs(dr) != 0):
+                            data.append({"name": name, "DL": dl, "DR": dr, "last_used": date, "time": time})
+                    elif match2 := re.search(r'\d{2}\.\d{2}\.\d{4}', line):
+                        date = datetime.strptime(match2.group(), "%d.%m.%Y")
+                        if date > sixty_days_ago and (abs(dl) != 0 or abs(dr) != 0):
+                            data.append({"name": name, "DL": dl, "DR": dr, "last_used": date, "time": time})
+    return data
+def read_json_file(json_path):
+    """
+    Read the JSON file.
+    """
+    if os.path.exists(json_path):
+        with open(json_path, "r") as f:
+            json_data = json.load(f)
+    else:
+        json_data = {}
+    return json_data
 
-def get_directory(config):
-    """Get the directory to search from the configuration file."""
-    return config['PATHS']['tool_t_path']
+def write_json_file(json_data, json_path):
+    """
+    Write the JSON data to file.
+    """
+    with open(json_path, "w") as f:
+        json.dump(json_data, f, indent=4)
 
-def get_graph_storage(config):
-    return config['PATHS']['graph_storage']
 
-def extract_data(filename):
-    """Extract the tool names, DR values, and DL values from the file, ignoring rows where both values are zero."""
-    with open(filename, 'r') as f:
-        lines = f.readlines()[2:]
-    pattern = re.compile(r'^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)')
-    dr_names = []
-    dl_names = []
-    drs = []
-    dls = []
-    for line in lines:
-        if match := pattern.match(line):
-            name = match[1]
-            dr = float(match[5])
-            dl = float(match[6])
-            if abs(dr) != 0:
-                dr_names.append(name)
-                drs.append(dr)
-            elif abs(dl) != 0:
-                dl_names.append(name)
-                dls.append(dl)    
-    return dr_names,dl_names, drs, dls
+def process_files(path):
+    json_path = os.path.join(path, 'offsets.json')
+    json_data = read_json_file(json_path)
 
-def plot_data(graph_storage, filename, dr_names, dl_names, drs, dls):
-    # sourcery skip: extract-duplicate-method
-    # Create a figure and axis
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 9), layout='constrained')
+    for file in os.listdir(path):
+        if file.endswith(".t"):
+            file_path = os.path.join(path, file)
+            data = read_and_parse_file(file_path)
+            for line in data:
+                machine_name = file[:5]
+                if machine_name not in json_data:
+                    json_data[machine_name] = {}
+                if line['name'] not in json_data[machine_name]:
+                    json_data[machine_name][line['name']] = [{"DL": line['DL'], "DR": line['DR'], "Date":line['last_used'].strftime("%Y-%m-%d"), "Time": line['time']}]
+                else:
+                    latest_dl = json_data[machine_name][line['name']][-1]['DL']
+                    latest_dr = json_data[machine_name][line['name']][-1]['DR']
+                    if latest_dl != line['DL'] or latest_dr != line['DR']:
+                        json_data[machine_name][line['name']].append({"DL": line['DL'], "DR": line['DR'], "Date":line['last_used'].strftime("%Y-%m-%d"), "Time": line['time']})
+    write_json_file(json_data, json_path)
 
-    # Plot the DR values
-    ax1.bar(dr_names, drs)
-    ax1.set_xlabel("Tool")
-    ax1.set_ylabel("DR")
-    for i, v in enumerate(drs):
-        ax1.text(i, v, f"{v:.4f}", ha="center", va="bottom", rotation= 90)
 
-    # Plot the DL values
-    ax2.bar(dl_names, dls)
-    ax2.set_xlabel("Tool")
-    ax2.set_ylabel("DL")
-    for i, v in enumerate(dls):
-        ax2.text(i, v, f"{v:.4f}", ha="center", va="bottom", rotation= 90)
 
-    # Tighten layout and show plot
-    plt.xticks(rotation = 45)
-    plt.suptitle(filename)
-    fig.savefig(os.path.join(graph_storage, f"{filename}.png"))
 
-    
-    plt.close()
-def main():
-    config = load_config()
-    directory = get_directory(config)
-    graph_storage = get_graph_storage(config)
-    filenames = os.listdir(directory)
-    for filename in filenames:
-        full_path = os.path.join(directory, filename)
-        dr_names, dl_names, drs, dls = extract_data(full_path)
-        plot_data(graph_storage, filename, dr_names, dl_names, drs, dls)
-
-if __name__ == '__main__':
-    main()
+# call the process_files function to start processing the files
+process_files('./Data/tooldott')
