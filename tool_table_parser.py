@@ -2,6 +2,15 @@ import os
 import json
 import re
 from datetime import datetime, timedelta
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+tool_t_path = config['PATHS']['tool_t_path']
+offsets_json = config['PATHS']['json_path']
+
+# Now you can use the tool_t_path and json_path variables in your script
 
 def read_and_parse_file(file_path):
     """
@@ -15,7 +24,7 @@ def read_and_parse_file(file_path):
         for line in lines[2:]:
             line_data = line.split()
             if len(line_data) > 1:
-                name, dl, dr = line_data[1], float(line_data[5]), float(line_data[6])
+                name, dl, dr = line_data[0], float(line_data[5]), float(line_data[6])
                 if match := re.search(r'\d{2}:\d{2}', line):
                     time = match.group()
                     if match := re.search(r'\d{4}\.\d{2}\.\d{2}', line):
@@ -47,7 +56,7 @@ def write_json_file(json_data, json_path):
 
 
 def process_files(path):
-    json_path = os.path.join(path, 'offsets.json')
+    json_path = os.path.join(path, offsets_json)
     json_data = read_json_file(json_path)
 
     for file in os.listdir(path):
@@ -69,6 +78,6 @@ def process_files(path):
 
 
 
-
-# call the process_files function to start processing the files
-process_files('./Data/tooldott')
+if __name__ == "__main__":
+    # call the process_files function to start processing the files
+    process_files(tool_t_path)
