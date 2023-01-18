@@ -2,7 +2,8 @@ import configparser
 import threading
 import tkinter as tk
 from tkinter import ttk
-
+import subprocess
+import os
 # Import modules
 import notebook_displays
 
@@ -21,9 +22,15 @@ def ecp_run():
     thread.start()
 
 def ecp_run_thread():
-    import subprocess
     subprocess.run([ecp_path])
-    
+
+def batch_run():
+    thread1 = threading.Thread(target=batch_run_thread)
+    thread1.start()
+
+def batch_run_thread():
+    os.system("tooltest.bat")
+
 def about():
     about = tk.Toplevel(root)
     about.geometry("250x250")
@@ -39,9 +46,9 @@ root.geometry("1200x800")
 # Create Menu Bar
 menu_bar = tk.Menu(root)
 utility_menu = tk.Menu(menu_bar, tearoff=0)
-
+utility_menu.add_command(label="Run Tool.t Gatherer", command=batch_run)
 utility_menu.add_command(label="Run Essai Control Panel", command=ecp_run)
-menu_bar.add_cascade(label="Utilities", menu=utility_menu)
+menu_bar.add_cascade(label="External Programs", menu=utility_menu)
 
 menu_bar.add_command(label="About", command=about)
 menu_bar.add_command(label="Exit", command=root.destroy)

@@ -3,11 +3,12 @@ import json
 import os
 import tkinter as tk
 from tkinter import ttk
-
+import subprocess
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import tool_table_parser as ttp
+
 
 class OffsetUtilities(ttk.Frame):
     def __init__(self, parent, statusvar, sbar):
@@ -41,7 +42,9 @@ class OffsetUtilities(ttk.Frame):
         tk.Button(self, text="Create Chart", command=self.create_chart).grid(row=2, column=0)
         tk.Button(self, text="Parse Tool.t files", command=self.tool_dot_t).grid(row=3, column=0, padx=10, pady=10)
         
-        
+        self.include_history = tk.IntVar()
+        tk.Checkbutton(self, text="Include history data", variable=self.include_history).grid(row=4, column=0)
+
     def tool_dot_t(self):
         self.statusvar.set("Busy..")
         self.sbar.update()
@@ -55,29 +58,49 @@ class OffsetUtilities(ttk.Frame):
 
         dl_data = []
         dr_data = []
-
+        tool_num = []
         for id_num, measurements in machine.items():
             dl = 0
             dr = 0
             for measurement in measurements:
                 dl += measurement['DL']
                 dr += measurement['DR']
+            if len(measurements) > 1 and self.include_history.get() == 1:
+                for history_measurement in measurements[1:]:
+                    dl += history_measurement['DL']
+                    dr += history_measurement['DR']
             dl_data.append(dl)
             dr_data.append(dr)
-
+            tool_num.append(id_num)
         fig, axs = plt.subplots(1, 2, tight_layout=True)
         fig.set_size_inches(15, 7)
         axs[0].set_title('DL Measurements')
         axs[0].set_xlabel('Tool Number')
         axs[0].set_ylabel('Offset')
-        axs[0].stem(list(machine.keys()), dl_data, markerfmt='D', label='DL')
+        dl_colors = []
+        for dl in dl_data:
+            if dl > 0.01:
+                dl_colors.append('red')
+            elif dl > 0.005:
+                dl_colors.append('orange')
+            elif dl > 0:
+                dl_colors.append('green')
+            else:
+                dl_colors.append('blue')
+        axs[0].bar(tool_num, dl_data, color=dl_colors)
         axs[0].legend()
+        axs[0].set_xticklabels(tool_num, rotation=45)
+        axs[0].grid(True, axis='y', linestyle='-.', linewidth=0.5)
 
         axs[1].set_title('DR Measurements')
         axs[1].set_xlabel('Tool Number')
         axs[1].set_ylabel('Offset')
-        axs[1].stem(list(machine.keys()), dr_data, markerfmt='*', label='DR')
+        axs[1].scatter(tool_num, dr_data, marker='*', label='DR')
+        for i, txt in enumerate(dl_data):
+            if txt != 0:
+                axs[1].annotate(txt, (tool_num[i], dr_data[i]))
         axs[1].legend()
+        axs[1].set_xticklabels(tool_num, rotation=45)
 
         canvas = FigureCanvasTkAgg(fig, master=self.chart_window)
         canvas.draw()
@@ -88,49 +111,11 @@ class ToolOrder(ttk.Frame):
         super().__init__(parent)
         self.pack()
 
-        # create a label
-        label = tk.Label(self, text="different but the same")
-        label.grid(row=0,column=0, padx=5,pady=5)
-
-        # create a button that will raise the Main frame when clicked
-        button = tk.Button(self, text="Go to Main", command=self.pack_forget)
-        button.grid(row=0,column=1,padx=5,pady=5)
-
-    def tool_dot_t(self, statusvar, sbar):
-        statusvar.set("Busy..")
-        sbar.update()
-        ttp.main()
-        statusvar.set("Ready...")
+       
+    
 
 class Home(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.pack()
-class GraphFrame(tk.Frame):
-    def __init__(self, master=None):
-        super().__init__(master)
-        self.master = master
-        self.pack()
-        self.create_widgets()
-
-    def create_widgets(self):
-        with open("./Data/tooldott/offsets.json", "r") as f:
-            data = json.load(f)
-
-        x = []
-        DL_y = []
-        DR_y = []
-
-        for key in data["HP-02"]:
-            x.append(int(key))
-            DL_y.append(data["HP-02"][key][0]["DL"])
-            DR_y.append(data["HP-02"][key][0]["DR"])
-
-        fig = plt.figure()
-        plt.plot(x, DL_y, label="DL")
-        plt.plot(x, DR_y, label="DR")
-        plt.legend()
-
-        canvas = FigureCanvasTkAgg(fig, self)
-        canvas.draw()
-        canvas.get_tk_widget().grid(row=0, column=0)
+        
