@@ -45,7 +45,7 @@ class OffsetUtilities(ttk.Frame):
         tk.Button(self, text="Parse Tool.t files", command=self.tool_dot_t).grid(row=3, column=0, padx=10, pady=10)
         
         self.include_history = tk.IntVar()
-        tk.Checkbutton(self, text="Include history data", variable=self.include_history).grid(row=4, column=0)
+        #tk.Checkbutton(self, text="Include history data", variable=self.include_history).grid(row=4, column=0)
         
         
 
@@ -128,23 +128,26 @@ class OffsetUtilities(ttk.Frame):
         selected_tool = self.tool_combo.get()
         tool_data = self.data[self.selected_machine.get()][selected_tool]
 
-        # extract the DL, DR and date data for the selected tool
+        # extract the DL, DR and timestamp data for the selected tool
         dl_data = [measurement['DL'] for measurement in tool_data]
         dr_data = [measurement['DR'] for measurement in tool_data]
-        date_data = [datetime.datetime.strptime(measurement['Timestamp'], '%Y-%m-%d %H:%M').date() for measurement in tool_data]
-
+        timestamp_data = [measurement['Timestamp'] for measurement in tool_data]
+        # timestamp_data = [datetime.datetime.strptime(measurement['Timestamp'], '%Y-%m-%d %H:%M') for measurement in tool_data]
+        print(dl_data)
+        print(timestamp_data)
         # create a new figure
         fig, ax = plt.subplots()
-        ax.set_title(f'{selected_tool} Measurements')
-        ax.set_xlabel('Date')
+        ax.set_title(f'{self.selected_machine.get()} Tool {selected_tool} Offset History')
+        ax.set_xlabel('Timestamp')
         ax.set_ylabel('Offset')
-        ax.xaxis_date()
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %I:%M'))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=3))
+        ax.grid(True, axis='y', linestyle='--', linewidth=0.5)
+        #ax.xaxis_date()
+        #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %I:%M'))
+        #ax.xaxis.set_major_locator(mdates.AutoDateLocator())
 
         # plot the DL and DR data
-        ax.plot(date_data, dl_data, label='DL')
-        ax.plot(date_data, dr_data, label='DR')
+        ax.plot(timestamp_data, dl_data, '.-', label='DL')
+        ax.plot(timestamp_data, dr_data, '.-', label='DR')
         ax.legend()
         plt.tight_layout()
 
@@ -155,7 +158,7 @@ class OffsetUtilities(ttk.Frame):
         # create a new Toplevel window for the selected tool
         self.tool_window = tk.Toplevel(self)
         self.tool_window.title(f"{selected_tool} Measurements")
-
+        self.tool_window.iconbitmap("toolbox.ico")
         # add the new figure to the tool_window
         canvas = FigureCanvasTkAgg(fig, master=self.tool_window)
         canvas.draw()
