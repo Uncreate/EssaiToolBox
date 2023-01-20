@@ -131,7 +131,7 @@ class OffsetUtilities(ttk.Frame):
         # extract the DL, DR and date data for the selected tool
         dl_data = [measurement['DL'] for measurement in tool_data]
         dr_data = [measurement['DR'] for measurement in tool_data]
-        date_data = [datetime.datetime.strptime(measurement['Timestamp'], '%Y-%m-%d %I:%M').date() for measurement in tool_data]
+        date_data = [datetime.datetime.strptime(measurement['Timestamp'], '%Y-%m-%d %H:%M').date() for measurement in tool_data]
 
         # create a new figure
         fig, ax = plt.subplots()
