@@ -1,14 +1,8 @@
-
 start "HP-01" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-01.tnccmd
-
 start "HP-02" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-02.tnccmd
-
 start "HP-03" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-03.tnccmd
-
 start "HP-04" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-04.tnccmd
-
 start "HP-05" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-05.tnccmd
-
 start "HP-06" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-06.tnccmd
 start "HP-07" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-07.tnccmd
 start "HP-08" "C:\Program Files (x86)\HEIDENHAIN\TNCremo\TNCcmdPlus.exe" ./Data/tnccmd/HP-08.tnccmd

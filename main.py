@@ -1,7 +1,9 @@
-import tkinter as tk
-from tkinter import ttk
 import configparser
 import threading
+import tkinter as tk
+from tkinter import ttk
+import subprocess
+import os
 # Import modules
 import notebook_displays
 
@@ -20,9 +22,15 @@ def ecp_run():
     thread.start()
 
 def ecp_run_thread():
-    import subprocess
     subprocess.run([ecp_path])
-    
+
+def batch_run():
+    thread1 = threading.Thread(target=batch_run_thread)
+    thread1.start()
+
+def batch_run_thread():
+    os.system("tooltest.bat")
+
 def about():
     about = tk.Toplevel(root)
     about.geometry("250x250")
@@ -32,35 +40,39 @@ def about():
 
 # Create Root Window
 root = tk.Tk()
-root.geometry("1200x800")
 root.title("Essai Tool Box")
-
+root.geometry("1200x800")
+root.iconbitmap("toolbox.ico")
 # Create Menu Bar
 menu_bar = tk.Menu(root)
 utility_menu = tk.Menu(menu_bar, tearoff=0)
-
+utility_menu.add_command(label="Run Tool.t Gatherer", command=batch_run)
 utility_menu.add_command(label="Run Essai Control Panel", command=ecp_run)
-menu_bar.add_cascade(label="Utilities", menu=utility_menu)
+menu_bar.add_cascade(label="External Programs", menu=utility_menu)
 
 menu_bar.add_command(label="About", command=about)
 menu_bar.add_command(label="Exit", command=root.destroy)
 root.config(menu=menu_bar)
-
-display = ttk.Notebook(root)
-display.pack(padx=10,pady=10,fill="both",expand=True)
-frame1 = notebook_displays.OffsetUtilities(display)
-frame2 = notebook_displays.ToolOrder(display)
-frame3 = notebook_displays.Home(display)
-frame1.pack()   
-frame2.pack()
-frame3.pack()
-display.add(frame3, text="Home")
-display.add(frame1, text="Tool.t Utilies")
-display.add(frame2, text="Tool Order")
 # Create Status Bar
 statusvar = tk.StringVar()
 statusvar.set("Ready...")
 sbar = tk.Label(root, textvariable=statusvar, relief=tk.SUNKEN, anchor="e")
 sbar.pack(side=tk.BOTTOM, fill=tk.X)
+display = ttk.Notebook(root)
+display.pack(padx=10,pady=10,fill="both",expand=True)
+frame1 = notebook_displays.OffsetUtilities(display, statusvar, sbar)
+frame2 = notebook_displays.ToolOrder(display)
+frame3 = notebook_displays.Home(display)
+#frame4 = notebook_displays.GraphFrame(display)
+frame1.pack()   
+frame2.pack()
+frame3.pack()
+#frame4.pack()
+
+display.add(frame3, text="Home")
+display.add(frame1, text="Tool.t Utilies")
+#display.add(frame4, text="Offset Graph")
+display.add(frame2, text="Tool Order")
+
 
 root.mainloop()
