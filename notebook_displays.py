@@ -9,7 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
 
 import tool_table_parser as ttp
-
+from test import MainApp
 
 class OffsetUtilities(ttk.Frame):
     def __init__(self, parent, statusvar, sbar):
@@ -179,4 +179,4 @@ class Home(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.pack()
-        
+        MainApp.pack(self)

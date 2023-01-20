@@ -6,7 +6,7 @@ import subprocess
 import os
 # Import modules
 import notebook_displays
-
+import test
 # Load Configuration File
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -63,6 +63,7 @@ display.pack(padx=10,pady=10,fill="both",expand=True)
 frame1 = notebook_displays.OffsetUtilities(display, statusvar, sbar)
 frame2 = notebook_displays.ToolOrder(display)
 frame3 = notebook_displays.Home(display)
+#frame3 = test.MainApp(display)
 #frame4 = notebook_displays.GraphFrame(display)
 frame1.pack()   
 frame2.pack()
