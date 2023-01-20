@@ -42,7 +42,7 @@ def about():
 root = tk.Tk()
 root.title("Essai Tool Box")
 root.geometry("1200x800")
-
+root.iconbitmap("toolbox.ico")
 # Create Menu Bar
 menu_bar = tk.Menu(root)
 utility_menu = tk.Menu(menu_bar, tearoff=0)
