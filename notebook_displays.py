@@ -131,7 +131,7 @@ class OffsetUtilities(ttk.Frame):
         # extract the DL, DR and date data for the selected tool
         dl_data = [measurement['DL'] for measurement in tool_data]
         dr_data = [measurement['DR'] for measurement in tool_data]
-        date_data = [datetime.datetime.strptime(measurement['Date'], '%Y-%m-%d').date() for measurement in tool_data]
+        date_data = [datetime.datetime.strptime(measurement['Timestamp'], '%Y-%m-%d %I:%M').date() for measurement in tool_data]
 
         # create a new figure
         fig, ax = plt.subplots()
@@ -139,12 +139,12 @@ class OffsetUtilities(ttk.Frame):
         ax.set_xlabel('Date')
         ax.set_ylabel('Offset')
         ax.xaxis_date()
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %I:%M'))
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=3))
 
         # plot the DL and DR data
-        ax.scatter(date_data, dl_data, label='DL')
-        ax.scatter(date_data, dr_data, label='DR')
+        ax.plot(date_data, dl_data, label='DL')
+        ax.plot(date_data, dr_data, label='DR')
         ax.legend()
         plt.tight_layout()
 

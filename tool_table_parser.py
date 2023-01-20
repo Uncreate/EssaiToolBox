@@ -30,12 +30,15 @@ def read_and_parse_file(file_path):
                     if match := re.search(r'\d{4}\.\d{2}\.\d{2}', line):
                         date = datetime.strptime(match.group(), "%Y.%m.%d")
                         if date > sixty_days_ago and (abs(dl) != 0 or abs(dr) != 0):
-                            data.append({"name": name, "DL": dl, "DR": dr, "last_used": date, "time": time})
+                            timestamp = datetime.combine(date, datetime.strptime(time, "%H:%M").time())
+                            data.append({"name": name, "DL": dl, "DR": dr, "Timestamp": timestamp})
                     elif match2 := re.search(r'\d{2}\.\d{2}\.\d{4}', line):
                         date = datetime.strptime(match2.group(), "%d.%m.%Y")
                         if date > sixty_days_ago and (abs(dl) != 0 or abs(dr) != 0):
-                            data.append({"name": name, "DL": dl, "DR": dr, "last_used": date, "time": time})
+                            timestamp = datetime.combine(date, datetime.strptime(time, "%H:%M").time())
+                            data.append({"name": name, "DL": dl, "DR": dr, "Timestamp": timestamp})
     return data
+
 def read_json_file(json_path):
     """
     Read the JSON file.
@@ -68,13 +71,14 @@ def process_files(path):
                 if machine_name not in json_data:
                     json_data[machine_name] = {}
                 if line['name'] not in json_data[machine_name]:
-                    json_data[machine_name][line['name']] = [{"DL": line['DL'], "DR": line['DR'], "Date":line['last_used'].strftime("%Y-%m-%d"), "Time": line['time']}]
+                    json_data[machine_name][line['name']] = [{"DL": line['DL'], "DR": line['DR'], "Timestamp":line['Timestamp'].strftime("%Y-%m-%d %H:%M")}]
                 else:
                     latest_dl = json_data[machine_name][line['name']][-1]['DL']
                     latest_dr = json_data[machine_name][line['name']][-1]['DR']
                     if latest_dl != line['DL'] or latest_dr != line['DR']:
-                        json_data[machine_name][line['name']].append({"DL": line['DL'], "DR": line['DR'], "Date":line['last_used'].strftime("%Y-%m-%d"), "Time": line['time']})
+                        json_data[machine_name][line['name']].append({"DL": line['DL'], "DR": line['DR'], "Timestamp":line['Timestamp'].strftime("%Y-%m-%d %H:%M")})
     write_json_file(json_data, json_path)
+
 
 
 
