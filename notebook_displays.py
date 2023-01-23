@@ -7,10 +7,10 @@ import datetime
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
-
+from datetime import timedelta
 import tool_table_parser as ttp
 from test import MainApp
-
+import csv
 class OffsetUtilities(ttk.Frame):
     def __init__(self, parent, statusvar, sbar):
         super().__init__(parent)
@@ -170,10 +170,68 @@ class OffsetUtilities(ttk.Frame):
 class ToolOrder(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
+
+        self.file_name = r"C:\\EssaiControlPanel\\excel\\ToolDbEditorlog_ToolItems.csv"
+        self.items = self.read_data_from_csv()
+        self.tool_listbox = tk.Listbox(self)
+        self.populate_listbox()
+        self.tool_listbox.grid()
+        self.create_widgets()
+        self.set_default_values()
+        self.position_widgets()
         self.pack()
 
-       
-    
+    def read_data_from_csv(self):
+        items = []
+        try:
+            with open(self.file_name, newline='', encoding='utf-8') as csvfile:
+                reader = csv.reader(csvfile)
+                items.extend(iter(reader))
+        except FileNotFoundError:
+            print("File not found")
+        except Exception:
+            print("An error occurred while reading the file")
+        return items
+
+    def populate_listbox(self):
+        for i in range(1, len(self.items)):
+            self.tool_listbox.insert(tk.END, self.items[i][1])
+
+    def create_widgets(self):
+        self.name_label = ttk.Label(self, text="Name:")
+        self.name_entry = ttk.Entry(self)
+        self.machine_label = ttk.Label(self, text="Machine:")
+        self.machine_combo = ttk.Combobox(self, values=[f"HC-{i:02d}" for i in range(1,31)])
+        self.needed_by_label = ttk.Label(self, text="Needed by:")
+        self.needed_by_date = ttk.Combobox(self, values=["Today", "Tomorrow", "Day after tomorrow"])
+        self.needed_by_hour = tk.Spinbox(self, from_=1, to=12)
+        self.needed_by_minute = tk.Spinbox(self, from_=0, to=59)
+        self.needed_by_am_pm = ttk.Combobox(self, values=["AM", "PM"])
+        self.comments_label = ttk.Label(self, text="Comments:")
+        self.comments_text = tk.Text(self)
+
+    def set_default_values(self):
+        now = datetime.datetime.now()
+        self.needed_by_date.set("Today")
+        self.needed_by_hour.delete(0, "end")
+        self.needed_by_hour.insert(0, (now.hour % 12) + 1)
+        self.needed_by_minute.delete(0, "end")
+        self.needed_by_minute.insert(0, now.minute)
+        self.needed_by_am_pm.set("AM" if now.hour < 12 else "PM")
+
+    def position_widgets(self):
+        self.name_label.grid(row=0, column=0, sticky="W")
+        self.name_entry.grid(row=0, column=1)
+        self.machine_label.grid(row=1, column=0, sticky="W")
+        self.machine_combo.grid(row=1, column=1)
+        self.needed_by_label.grid(row=2, column=0, sticky="W")
+        self.needed_by_date.grid(row=2, column=1)
+        self.needed_by_hour.grid(row=2, column=2)
+        self.needed_by_minute.grid(row=2, column=3)
+        self.needed_by_am_pm.grid(row=2, column=4)
+        self.comments_label.grid(row=3, column=0, sticky="W")
+        self.comments_text.grid(row=3, column=1)
+
 
 class Home(ttk.Frame):
     def __init__(self, parent):
