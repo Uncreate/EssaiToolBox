@@ -7,6 +7,7 @@ import os
 # Import modules
 import notebook_displays
 import test
+from ordering import ToolOrder
 # Load Configuration File
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -41,7 +42,7 @@ def about():
 # Create Root Window
 root = tk.Tk()
 root.title("Essai Tool Box")
-root.geometry("1200x800")
+root.geometry("1400x800")
 root.iconbitmap("toolbox.ico")
 # Create Menu Bar
 menu_bar = tk.Menu(root)
@@ -61,7 +62,7 @@ sbar.pack(side=tk.BOTTOM, fill=tk.X)
 display = ttk.Notebook(root)
 display.pack(padx=10,pady=10,fill="both",expand=True)
 frame1 = notebook_displays.OffsetUtilities(display, statusvar, sbar)
-frame2 = notebook_displays.ToolOrder(display)
+frame2 = ToolOrder(display)
 frame3 = notebook_displays.Home(display)
 #frame3 = test.MainApp(display)
 #frame4 = notebook_displays.GraphFrame(display)
