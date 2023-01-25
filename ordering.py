@@ -1,12 +1,11 @@
 
-import json
-
-import tkinter as tk
-from tkinter import ttk
 import datetime
-
+import json
 import sqlite3
+import tkinter as tk
 import traceback
+from tkinter import ttk
+
 
 class ToolOrder(ttk.Frame):
     def __init__(self, parent):
@@ -192,6 +191,9 @@ class ToolOrder(ttk.Frame):
         self.needed_by_hour = tk.Spinbox(self.orderframe, from_=1, to=12,width=3, wrap=True)
         self.needed_by_minute = tk.Spinbox(self.orderframe, from_=0, to=59, width=3, format="%02.0f", wrap=True)
         self.needed_by_am_pm = ttk.Combobox(self.orderframe, values=["AM", "PM"], width=3)
+        self.asap_var = tk.BooleanVar() # Create a variable to hold the checkbox's state
+        self.asap_checkbox = ttk.Checkbutton(self.orderframe, text="ASAP", variable=self.asap_var)
+        self.asap_checkbox.bind("<ButtonRelease-1>", self.set_asap) # Bind the checkbox to the 'set_asap' function
         self.comments_label = ttk.Label(self.orderframe, text="Comments:")
         self.comments_text = tk.Text(self.orderframe, height=10)
 
@@ -207,7 +209,21 @@ class ToolOrder(ttk.Frame):
         self.needed_by_minute.delete(0, "end")
         self.needed_by_minute.insert(0, now.minute)
         self.needed_by_am_pm.set("AM" if now.hour < 12 else "PM")
-        
+
+    def set_asap(self, event):
+        if self.asap_var.get():
+            self.update_time()
+        else:
+            # Set the needed_by_date to today
+            self.needed_by_date.set("Today")
+            # Set the needed_by_hour and needed_by_minute to the current time
+            now = datetime.datetime.now()
+            self.needed_by_hour.delete(0, "end")
+            self.needed_by_hour.insert(0, (now.hour % 12))
+            self.needed_by_minute.delete(0, "end")
+            self.needed_by_minute.insert(0, now.minute)
+
+
     def position_widgets(self):
         self.name_label.grid(row=0,column=0,sticky="E")
         self.name_entry.grid(row=0,column=1,sticky="W")
@@ -220,8 +236,9 @@ class ToolOrder(ttk.Frame):
         self.needed_by_hour.grid(row=4,column=1,sticky="E")
         self.needed_by_minute.grid(row=4,column=2,sticky="W")
         self.needed_by_am_pm.grid(row=4,column=3,sticky="W")
-        self.comments_label.grid(row=5,column=0,sticky="W")
-        self.comments_text.grid(row=6,columnspan=4,sticky="W",padx=5)
+        self.asap_checkbox.grid(row=5)
+        self.comments_label.grid(row=6,column=0,sticky="W")
+        self.comments_text.grid(row=7,columnspan=4,sticky="W",padx=5)
 
     def create_search_bar(self):
         self.search_var = tk.StringVar()
@@ -237,3 +254,7 @@ class ToolOrder(ttk.Frame):
         for item in self.items:
             if search_term.lower() in item[1].lower():
                 self.tool_listbox.insert(tk.END, item[1])
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = ToolOrder(root)
+    app.mainloop()
