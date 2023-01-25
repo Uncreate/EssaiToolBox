@@ -38,7 +38,7 @@ class ToolOrder(ttk.Frame):
         conn = sqlite3.connect('./Data/orders.db')
         c = conn.cursor()
         c.execute('''CREATE TABLE IF NOT EXISTS orders
-                    (name text, machine text, part text, time text, comments text)''')
+                    (name text, machine text, part text, time text, comments text, complete integer)''')
         name = self.name_entry.get()
         machine = self.machine_combo.get()
         part = self.part_entry.get()
@@ -53,7 +53,8 @@ class ToolOrder(ttk.Frame):
             date = None
         time = f"{date} {self.needed_by_hour.get()}:{self.needed_by_minute.get()} {self.needed_by_am_pm.get()}"
         comments = self.comments_text.get("1.0", tk.END)
-        c.execute("INSERT INTO orders VALUES (?,?,?,?,?)", (name, machine, part, time, comments))
+        complete = 0
+        c.execute("INSERT INTO orders VALUES (?,?,?,?,?,?)", (name, machine, part, time, comments, complete))
         conn.commit()
         order_id = c.lastrowid
         # print(self.tool_order) 
