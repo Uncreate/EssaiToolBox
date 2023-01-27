@@ -6,8 +6,7 @@ import subprocess
 import os
 # Import modules
 import notebook_displays
-import test
-from ordering import ToolOrder
+import builder, ordering
 # Load Configuration File
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -62,9 +61,9 @@ sbar.pack(side=tk.BOTTOM, fill=tk.X)
 display = ttk.Notebook(root)
 display.pack(padx=10,pady=10,fill="both",expand=True)
 frame1 = notebook_displays.OffsetUtilities(display, statusvar, sbar)
-frame2 = ToolOrder(display)
+frame2 = ordering.ToolOrder(display)
 frame3 = notebook_displays.Home(display)
-#frame3 = test.MainApp(display)
+frame4 = builder.ViewOrders(display)
 #frame4 = notebook_displays.GraphFrame(display)
 frame1.pack()   
 frame2.pack()
@@ -73,7 +72,7 @@ frame3.pack()
 
 display.add(frame3, text="Home")
 display.add(frame1, text="Tool.t Utilies")
-#display.add(frame4, text="Offset Graph")
+display.add(frame4, text="Tool Builder")
 display.add(frame2, text="Tool Order")
 
 

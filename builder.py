@@ -6,10 +6,14 @@ import win32api
 import win32con
 import winreg as winreg
 import configparser
+import os
+import win32print
+from tkinter import messagebox
 config = configparser.ConfigParser()
+
 config.read('config.ini')
 
-
+printer_name = config['SETTINGS']['Printer']
 db_path = config['PATHS']['tool_order_db']
 class ViewOrders(ttk.Frame):
     def __init__(self, parent):
@@ -20,13 +24,15 @@ class ViewOrders(ttk.Frame):
         self.tree.bind("<<TreeviewSelect>>", self.show_order_details)
         # self.details_tree.bind("<<TreeviewSelect>>", self.send_to_ecp)
         self.complete_button = ttk.Button(self, text="Complete Order", command=self.complete_order)
-        self.complete_button.grid(row=10, column=0,columnspan=2, padx=5, pady=5)
+        self.complete_button.grid(row=10, column=0, padx=5, pady=5)
+        self.complete_button = ttk.Button(self, text="Print ticket", command=self.print_ticket)
+        self.complete_button.grid(row=10, column=1, padx=5, pady=5)
         self.position_widgets()
         self.pack()
 
     def create_widgets(self):
-        self.tree = ttk.Treeview(self, columns=("name", "machine", "part", "time", "comments", "complete"))
-        self.tree["columns"] = ("name", "machine", "part", "time", "comments", "complete")
+        self.tree = ttk.Treeview(self, columns=("name", "machine", "part", "time", "comments"))#, "complete"))
+        self.tree["columns"] = ("name", "machine", "part", "time", "comments")#, "complete")
         for col in self.tree["columns"]:
             self.tree.column(col, anchor="center")
         self.tree.heading("#0", text="Order ID")
@@ -35,7 +41,7 @@ class ViewOrders(ttk.Frame):
         self.tree.heading("part", text="Part Number")
         self.tree.heading("time", text="Needed by")
         self.tree.heading("comments", text="Comments")
-        self.tree.heading("complete", text="Complete")
+        # self.tree.heading("complete", text="Complete")
         self.details_tree = ttk.Treeview(self, columns=("tool_name", "item_qty", "cf", "ct", "metric"))
         self.details_tree["columns"] = ("tool_name", "item_qty", "cf", "ct", "metric")
         for col in self.details_tree["columns"]:
@@ -58,7 +64,7 @@ class ViewOrders(ttk.Frame):
         existing_ids = [self.tree.item(item)['text'] for item in self.tree.get_children()]
         for order in orders:
             if order[0] not in existing_ids:
-                self.tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5], order[6]))
+                self.tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))#, order[6]))
         conn.close()
         items = [(self.tree.set(child, '#4'), child) for child in self.tree.get_children()]
         items.sort()
@@ -109,7 +115,13 @@ class ViewOrders(ttk.Frame):
             self.tree.delete(*self.tree.get_children())
             self.populate_treeview()
 
-
+    def print_ticket(self):
+        #p = win32print.OpenPrinter (printer_name)
+        #job = win32print.StartDocPrinter (p, 1, ("test of raw data", None, "RAW")) 
+        #win32print.StartPagePrinter(p)
+        #win32print.WritePrinter (p, "data to print") 
+        #win32print.EndPagePrinter(p)
+        messagebox.showinfo("Feature Not Available", "Sorry this feature is not available at this time.")
 if __name__ == "__main__":
     root = tk.Tk()
     root.iconbitmap("toolbox.ico")
