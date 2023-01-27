@@ -5,7 +5,12 @@ import sqlite3
 import tkinter as tk
 import traceback
 from tkinter import ttk
+import configparser
+config = configparser.ConfigParser()
+config.read('config.ini')
 
+tool_items = config['PATHS']['tool_items']
+db_path = config['PATHS']['tool_order_db']
 
 class ToolOrder(ttk.Frame):
     def __init__(self, parent):
@@ -15,7 +20,7 @@ class ToolOrder(ttk.Frame):
         self.ct_vars = []
         self.metric_vars = []
         self.tool_order = []
-        self.file_name = r"C:\\EssaiControlPanel\\excel\\ToolDbEditorlog_ToolItems.json"
+        self.file_name = tool_items
         self.items = self.read_data_from_json()
         self.order_frame()
         self.create_widgets()
@@ -35,7 +40,7 @@ class ToolOrder(ttk.Frame):
         self.pack()
 
     def submit(self):
-        conn = sqlite3.connect('./Data/orders.db')
+        conn = sqlite3.connect(db_path)
         c = conn.cursor()
         c.execute('''CREATE TABLE IF NOT EXISTS orders
                     (name text, machine text, part text, time text, comments text, complete integer)''')
@@ -85,6 +90,8 @@ class ToolOrder(ttk.Frame):
         self.set_default_values()
         # clear the comments
         self.comments_text.delete("1.0", tk.END)
+        self.search_entry.delete(0, tk.END)
+        self.asap_var.set(0)
         # remove anything thats been added to the order_details_frame
         for child in self.order_detail.winfo_children():
             child.destroy()
@@ -252,10 +259,18 @@ class ToolOrder(ttk.Frame):
     def update_listbox(self, *args):
         search_term = self.search_var.get()
         self.tool_listbox.delete(0, tk.END)
-        for item in self.items:
-            if search_term.lower() in item[1].lower():
-                self.tool_listbox.insert(tk.END, item[1])
+        if search_term:
+            for item in self.items:
+                if search_term in item:
+                    self.tool_listbox.insert(tk.END, item)
+        else:
+            for item in self.items:
+                self.tool_listbox.insert(tk.END, item)
+
+
 if __name__ == "__main__":
     root = tk.Tk()
+    root.iconbitmap("toolbox.ico")
+    root.title("Tool Ordering App")
     app = ToolOrder(root)
     app.mainloop()
