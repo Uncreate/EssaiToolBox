@@ -6,9 +6,8 @@ import win32api
 import win32con
 import winreg as winreg
 import configparser
-import os
-import win32print
-from tkinter import messagebox
+from win32printing import Printer
+
 config = configparser.ConfigParser()
 
 config.read('config.ini')
@@ -25,7 +24,7 @@ class ViewOrders(ttk.Frame):
         # self.details_tree.bind("<<TreeviewSelect>>", self.send_to_ecp)
         self.complete_button = ttk.Button(self, text="Complete Order", command=self.complete_order)
         self.complete_button.grid(row=10, column=0, padx=5, pady=5)
-        self.complete_button = ttk.Button(self, text="Print ticket", command=self.print_ticket)
+        self.complete_button = ttk.Button(self, text="Reload Orders", command=self.reset_treeview)
         self.complete_button.grid(row=10, column=1, padx=5, pady=5)
         self.position_widgets()
         self.pack()
@@ -36,10 +35,15 @@ class ViewOrders(ttk.Frame):
         for col in self.tree["columns"]:
             self.tree.column(col, anchor="center")
         self.tree.heading("#0", text="Order ID")
+        self.tree.column("#0", width=55,stretch=False)
         self.tree.heading("name", text="Name")
+        self.tree.column("name", width=85, stretch=False)
         self.tree.heading("machine", text="Machine")
+        self.tree.column("machine", width=65, stretch=False)
         self.tree.heading("part", text="Part Number")
+        self.tree.column("part", width=95, stretch=False)
         self.tree.heading("time", text="Needed by")
+        self.tree.column("time", width=120, stretch=False)
         self.tree.heading("comments", text="Comments")
         # self.tree.heading("complete", text="Complete")
         self.details_tree = ttk.Treeview(self, columns=("tool_name", "item_qty", "cf", "ct", "metric"))
@@ -47,13 +51,25 @@ class ViewOrders(ttk.Frame):
         for col in self.details_tree["columns"]:
             self.details_tree.column(col, anchor="center")
         self.details_tree.heading("#0", text="Order ID")
+        self.details_tree.column("#0", width=55,stretch=False)
         self.details_tree.heading("tool_name", text="Tool Name")
+        self.details_tree.column("tool_name", width=85, stretch=False)
         self.details_tree.heading("item_qty", text="Quantity")
+        self.details_tree.column("item_qty", width=85, stretch=False)
         self.separator = ttk.Separator(self,orient="horizontal")
         self.details_tree.heading("cf", text="CF")
+        self.details_tree.column("cf", width=50, stretch=False)
         self.details_tree.heading("ct", text="CT")
+        self.details_tree.column("ct", width=50, stretch=False)
         self.details_tree.heading("metric", text="Metric")
+        self.details_tree.column("metric", width=50, stretch=False)
         
+    def reset_treeview(self):
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+        for i in self.details_tree.get_children():
+            self.details_tree.delete(i)
+        self.populate_treeview()
 
     def populate_treeview(self):
         conn = sqlite3.connect(db_path)
@@ -66,6 +82,11 @@ class ViewOrders(ttk.Frame):
             if order[0] not in existing_ids:
                 self.tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))#, order[6]))
         conn.close()
+        for i, item in enumerate(self.tree.get_children()):
+            if i % 2 == 0:
+                self.tree.item(item, tags=("odd",))
+
+        self.tree.tag_configure("odd", background="light blue")
         items = [(self.tree.set(child, '#4'), child) for child in self.tree.get_children()]
         items.sort()
         for index, (val, item) in enumerate(items):
@@ -86,12 +107,17 @@ class ViewOrders(ttk.Frame):
         order_details = c.fetchall()
         for order in order_details:
             self.details_tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))
+        for i, item in enumerate(self.details_tree.get_children()):
+            if i % 2 == 0:
+                self.details_tree.item(item, tags=("odd",))
+
+        self.details_tree.tag_configure("odd", background="light blue")
         conn.close()
 
     def position_widgets(self):
-        self.tree.grid(row=0, column=0, columnspan=2,padx=15, pady=15)
+        self.tree.grid(row=0, column=0, columnspan=2,padx=15, pady=15, sticky='W')
         self.separator.grid(row=1,columnspan=2, sticky='EW')
-        self.details_tree.grid(row=2, column=0, padx=15, pady=15,sticky='NW')
+        self.details_tree.grid(row=2, column=0, padx=15, pady=15,sticky='W')
         
     def send_to_ecp(self, e):
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\MyApp')
@@ -105,6 +131,7 @@ class ViewOrders(ttk.Frame):
 
 
     def complete_order(self):
+        self.print_ticket()
         if selected_items := self.tree.focus():
             order_id = self.tree.item(self.tree.focus())['text']
             conn = sqlite3.connect(db_path)
@@ -114,14 +141,27 @@ class ViewOrders(ttk.Frame):
             conn.close()
             self.tree.delete(*self.tree.get_children())
             self.populate_treeview()
-
+            
     def print_ticket(self):
-        #p = win32print.OpenPrinter (printer_name)
-        #job = win32print.StartDocPrinter (p, 1, ("test of raw data", None, "RAW")) 
-        #win32print.StartPagePrinter(p)
-        #win32print.WritePrinter (p, "data to print") 
-        #win32print.EndPagePrinter(p)
-        messagebox.showinfo("Feature Not Available", "Sorry this feature is not available at this time.")
+        font = {"height": 18}
+        name = self.tree.item(self.tree.focus())['values'][0]
+        machine = self.tree.item(self.tree.focus())['values'][1]
+        partnum = self.tree.item(self.tree.focus())['values'][2]
+        time = datetime.now()
+        time = time.strftime("%m/%d/%y, %H:%M")
+        details = []
+        for child in self.details_tree.get_children():
+            tool_name = self.details_tree.item(child)['values'][0]
+            qty = self.details_tree.item(child)['values'][1]
+            details.append((tool_name, qty))
+        with Printer(linegap=2, printer_name=printer_name) as printer:
+            printer.text(f"Name: {str(name)}",align="center", font_config=font)
+            printer.text(f"Machine Number: {str(machine)}", font_config=font)
+            printer.text(f"Part Number: {str(partnum)}",font_config=font)
+            for tool_name, qty in details:
+                printer.text(f"{str(tool_name)} - QTY={str(qty)}", font_config=font)
+            printer.text(time, align="center")
+        
 if __name__ == "__main__":
     root = tk.Tk()
     root.iconbitmap("toolbox.ico")

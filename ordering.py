@@ -6,6 +6,7 @@ import tkinter as tk
 import traceback
 from tkinter import ttk
 import configparser
+from tkinter import messagebox
 config = configparser.ConfigParser()
 config.read('config.ini')
 
@@ -40,6 +41,11 @@ class ToolOrder(ttk.Frame):
         self.pack()
 
     def submit(self):
+        name = self.name_entry.get()
+        part = self.part_entry.get()
+        if not name or not part:
+            messagebox.showerror("Error", "Requrired fields are empty")
+            return
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         c.execute('''CREATE TABLE IF NOT EXISTS orders
@@ -187,12 +193,12 @@ class ToolOrder(ttk.Frame):
         self.name_entry.insert(0, formatted_name)
 
     def create_widgets(self):
-        self.name_label = ttk.Label(self.orderframe, text="Name: (first.last)")
+        self.name_label = ttk.Label(self.orderframe, text="Name: (first.last)*")
         self.name_entry = ttk.Entry(self.orderframe)
         self.name_entry.bind('<FocusOut>', lambda e: self.lower_case())
-        self.machine_label = ttk.Label(self.orderframe, text="Machine:")
+        self.machine_label = ttk.Label(self.orderframe, text="Machine:*")
         self.machine_combo = ttk.Combobox(self.orderframe, values=[f"HC-{i:02d}" for i in range(1,31)])
-        self.part_label = ttk.Label(self.orderframe, text='Part Number')
+        self.part_label = ttk.Label(self.orderframe, text='Part Number*')
         self.part_entry =ttk.Entry(self.orderframe)
         self.needed_by_label = ttk.Label(self.orderframe, text="Needed by:")
         self.needed_by_date = ttk.Combobox(self.orderframe, values=["Today", "Tomorrow", "Day after tomorrow"])

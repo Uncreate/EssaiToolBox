@@ -102,3 +102,7 @@ dist/Tool Builder.exe
 dist/Tool Order.exe
 dist/toolbox.ico
 dist/Data/orders.db
+Data/inventory.json
+.gitignore
+Data/BOM.xlsx
+test.py

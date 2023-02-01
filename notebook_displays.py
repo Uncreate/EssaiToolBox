@@ -7,7 +7,7 @@ import datetime
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tool_table_parser as ttp
-from test import MainApp
+
 import sqlite3
 import traceback
 
@@ -172,4 +172,4 @@ class Home(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.pack()
-        MainApp.pack(self)
+        #MainApp.pack(self)

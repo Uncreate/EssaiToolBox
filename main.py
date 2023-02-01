@@ -68,7 +68,7 @@ frame4 = builder.ViewOrders(display)
 frame1.pack()   
 frame2.pack()
 frame3.pack()
-#frame4.pack()
+frame4.pack(expand=True)
 
 display.add(frame3, text="Home")
 display.add(frame1, text="Tool.t Utilies")

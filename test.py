@@ -1,72 +1,53 @@
-import tkinter as tk
-import sqlite3
-from tkinter import ttk
+import json
 
-class UserApp(ttk.Frame):
-    def __init__(self, parent, app_type):
-        super().__init__(parent)
-        self.app_type = app_type
-        self.pack()
-        self.create_widgets()
+with open("C:\\EssaiControlPanel\\excel\\ToolDbEditorlog_ToolItems.json") as f:
+    ToolItems = json.load(f)['ToolItems']
 
-    def create_widgets(self):
-        self.login_label = ttk.Label(self, text="Login:")
-        self.login_label.grid(row=0, column=0, sticky=tk.W)
-        self.login_entry = ttk.Entry(self)
-        self.login_entry.grid(row=0, column=1, sticky=tk.W)
-        self.password_label = ttk.Label(self, text="Password:")
-        self.password_label.grid(row=1, column=0, sticky=tk.W)
-        self.password_entry = ttk.Entry(self, show="*")
-        self.password_entry.grid(row=1, column=1, sticky=tk.W)
+# Create a dictionary to store the result
+result = {}
 
-        if self.app_type == "login":
-            self.login_button = ttk.Button(self, text='Login', command=self.login)
-            self.login_button.grid(row=2, column=0, sticky=tk.W)
-            self.register_button = ttk.Button(self, text='Register', command=self.register)
-            self.register_button.grid(row=2, column=1, sticky=tk.W)
-        elif self.app_type == "register":
-            self.password_confirm_label = ttk.Label(self, text="Confirm password:")
-            self.password_confirm_label.grid(row=2, column=0, sticky=tk.W)
-            self.password_confirm_entry = ttk.Entry(self, show="*")
-            self.password_confirm_entry.grid(row=2, column=1, sticky=tk.W)
-            self.register_button = ttk.Button(self, text='Register', command=self.register)
-            self.register_button.grid(row=3, column=0, sticky=tk.W)
+# Iterate through each item in the ToolItems list
+for item in ToolItems:
+    sEssaiPartNum = item['sEssaiPartNum']
+    sToolName = item['sToolName']
+    if sEssaiPartNum not in result:
+        result[sEssaiPartNum] = {
+            'sToolName': [sToolName],
+            'min': 0,
+            'max': 0,
+            'qty_on_hand': 0,
+            'crib_location': 0
+        }
+    else:
+        result[sEssaiPartNum]['sToolName'].append(sToolName)
+        result[sEssaiPartNum]['min'] = 0
+        result[sEssaiPartNum]['max'] = 0
+        result[sEssaiPartNum]['qty_on_hand'] = 0
+        result[sEssaiPartNum]['crib_location'] = 0
+# Write the result to a new JSON file
+with open('C:\\Users\\adam.riggs\\Documents\\EssaiToolBox\\Data\\inventory.json', 'w') as f:
+    json.dump(result, f)
 
-        self.quit_button = ttk.Button(self, text='Quit', command=self.quit)
-        self.quit_button.grid(row=4, column=0, sticky=tk.W)
 
-    def login(self):
-        # Get the values from the login_entry and password_entry widgets
-        login = self.login_entry.get()
-        password = self.password_entry.get()
-        # Check if the login and password match the ones in the database
-        # Code to connect to the database and check the credentials goes here
 
-    def register(self):
-        # Get the values from the login_entry, password_entry and password_confirm_entry widgets
-        login = self.login_entry.get()
-        password = self.password_entry.get()
-        confirm_password = self.password_confirm_entry.get()
-        # Check if the password and confirm_password match and if the login is not already taken
-    # Code to connect to the database and insert the new user goes here
 
-class MainApp(ttk.Frame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.pack()
-        self.create_widgets()
-    def create_widgets(self):
-        self.login_button = ttk.Button(self, text='Login', command=self.login)
-        self.login_button.pack()
-        self.register_button = ttk.Button(self, text='Register', command=self.register)
-        self.register_button.pack()
+import json
 
-    def login(self):
-        self.login_app = UserApp(self, "login")
+# Load the JSON file
+with open('./Data/inventory.json', 'r') as f:
+    inventory = json.load(f)
 
-    def register(self):
-        self.register_app = UserApp(self, "register")
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = MainApp(root)
-    app.mainloop()
+# Function to subtract 1 from qty_on_hand of a tool
+def subtract_qty(tool_name):
+    for item in inventory:
+        if tool_name in inventory[item]['sToolName']:
+            inventory[item]['qty_on_hand'] -= 1
+            break
+
+# Call the function when submit button is clicked
+tool_name = # retrieve tool_name from UI input
+subtract_qty(tool_name)
+
+# Save the updated inventory
+with open('./Data/inventory.json', 'w') as f:
+    json.dump(inventory, f)
