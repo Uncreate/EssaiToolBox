@@ -71,27 +71,38 @@ class ViewOrders(ttk.Frame):
             self.details_tree.delete(i)
         self.populate_treeview()
 
-    def populate_treeview(self):
-        conn = sqlite3.connect(db_path)
-        c = conn.cursor()
-        c.execute("SELECT rowid, * FROM orders WHERE complete = 0")
-        orders = c.fetchall()
-        orders = sorted(orders, key=lambda x: datetime.strptime(x[4], '%Y-%m-%d %I:%M %p'))
-        existing_ids = [self.tree.item(item)['text'] for item in self.tree.get_children()]
-        for order in orders:
-            if order[0] not in existing_ids:
-                self.tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))#, order[6]))
-        conn.close()
-        for i, item in enumerate(self.tree.get_children()):
-            if i % 2 == 0:
-                self.tree.item(item, tags=("odd",))
+    def connect_to_db(self):
+        try:
+            conn = sqlite3.connect(db_path)
+            return conn
+        except sqlite3.Error as e:
+            print(f"Error connecting to database: {e}")
+            return None
 
-        self.tree.tag_configure("odd", background="light blue")
+    def sort_treeview(self):
         items = [(self.tree.set(child, '#4'), child) for child in self.tree.get_children()]
         items.sort()
         for index, (val, item) in enumerate(items):
             self.tree.move(item, '', index)
+        for i, item in enumerate(self.tree.get_children()):
+            if i % 2 == 0:
+                self.tree.item(item, tags=("odd",))
+        self.tree.tag_configure("odd", background="light blue")
+
+    def populate_treeview(self):
+        if conn := self.connect_to_db():
+            with conn:
+                c = conn.cursor()
+                c.execute("SELECT rowid, * FROM orders WHERE complete = 0")
+                orders = c.fetchall()
+                orders = sorted(orders, key=lambda x: datetime.strptime(x[4], '%Y-%m-%d %I:%M %p'))
+                existing_ids = [self.tree.item(item)['text'] for item in self.tree.get_children()]
+                for order in orders:
+                    if order[0] not in existing_ids:
+                        self.tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))
+                self.sort_treeview()
         self.master.after(30000, self.populate_treeview)
+
     
     def show_order_details(self, event):
         # clear the details_tree
@@ -101,18 +112,31 @@ class ViewOrders(ttk.Frame):
         selected_order = self.tree.focus()
         order_id = self.tree.item(selected_order)['text']
         # fetch the details of the order from the order_detail table
-        conn = sqlite3.connect(db_path)
-        c = conn.cursor()
-        c.execute("SELECT * FROM order_detail WHERE order_id=?", (order_id,))
-        order_details = c.fetchall()
-        for order in order_details:
-            self.details_tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))
-        for i, item in enumerate(self.details_tree.get_children()):
-            if i % 2 == 0:
-                self.details_tree.item(item, tags=("odd",))
+        order_details = self._get_order_details(order_id)
+        self._insert_order_details_into_tree(order_details)
 
-        self.details_tree.tag_configure("odd", background="light blue")
-        conn.close()
+
+    def _get_order_details(self, order_id):
+            try:
+                conn = sqlite3.connect(db_path)
+                c = conn.cursor()
+                c.execute("SELECT * FROM order_detail WHERE order_id=?", (order_id,))
+                order_details = c.fetchall()
+                return order_details
+            except Exception as e:
+                print(f"An error occurred while fetching order details: {e}")
+            finally:
+                conn.close()
+
+    def _insert_order_details_into_tree(self, order_details):
+            for order in order_details:
+                self.details_tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))
+            for i, item in enumerate(self.details_tree.get_children()):
+                if i % 2 == 0:
+                    self.details_tree.item(item, tags=("odd",))
+
+            self.details_tree.tag_configure("odd", background="light blue")
+
 
     def position_widgets(self):
         self.tree.grid(row=0, column=0, columnspan=2,padx=15, pady=15, sticky='W')
@@ -132,13 +156,11 @@ class ViewOrders(ttk.Frame):
 
     def complete_order(self):
         self.print_ticket()
-        if selected_items := self.tree.focus():
-            order_id = self.tree.item(self.tree.focus())['text']
-            conn = sqlite3.connect(db_path)
-            c = conn.cursor()
-            c.execute("UPDATE orders SET complete = 1 WHERE rowid = ?", (order_id,))
-            conn.commit()
-            conn.close()
+        if selected_item := self.tree.focus():
+            order_id = self.tree.item(selected_item)['text']
+            with sqlite3.connect(db_path) as conn:
+                c = conn.cursor()
+                c.execute("UPDATE orders SET complete = 1 WHERE rowid = ?", (order_id,))
             self.tree.delete(*self.tree.get_children())
             self.populate_treeview()
             

@@ -41,18 +41,12 @@ class ToolOrder(ttk.Frame):
         self.pack()
 
     def submit(self):
-        name = self.name_entry.get()
-        part = self.part_entry.get()
+        name = self.name_entry.get().strip()
+        part = self.part_entry.get().strip()
         if not name or not part:
-            messagebox.showerror("Error", "Requrired fields are empty")
+            messagebox.showerror("Error", "Required fields are empty")
             return
-        conn = sqlite3.connect(db_path)
-        c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS orders
-                    (name text, machine text, part text, time text, comments text, complete integer)''')
-        name = self.name_entry.get()
-        machine = self.machine_combo.get()
-        part = self.part_entry.get()
+
         date_str = self.needed_by_date.get()
         if date_str == "Today":
             date = datetime.datetime.now().date()
@@ -63,27 +57,28 @@ class ToolOrder(ttk.Frame):
         else:
             date = None
         time = f"{date} {self.needed_by_hour.get()}:{self.needed_by_minute.get()} {self.needed_by_am_pm.get()}"
-        comments = self.comments_text.get("1.0", tk.END)
+        comments = self.comments_text.get("1.0", tk.END).strip()
         complete = 0
-        c.execute("INSERT INTO orders VALUES (?,?,?,?,?,?)", (name, machine, part, time, comments, complete))
-        conn.commit()
-        order_id = c.lastrowid
-        # print(self.tool_order) 
-        for item in self.tool_order:
-            tool_name = item['tool_name']
-            item_qty = item['item_qty']
-            cf = item['cf']
-            ct = item['ct']
-            metric = item['metric']
 
+        with sqlite3.connect(db_path) as conn:
+            c = conn.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS orders
+                        (name text, machine text, part text, time text, comments text, complete integer)''')
+            c.execute("INSERT INTO orders VALUES (?,?,?,?,?,?)", (name, self.machine_combo.get(), part, time, comments, complete))
+            order_id = c.lastrowid
 
             c.execute('''CREATE TABLE IF NOT EXISTS order_detail
                         (order_id text, tool_name text,item_qty text, cf text,ct text, metric text)''')
-            c.execute("INSERT INTO order_detail (order_id, tool_name, item_qty, cf, ct, metric) VALUES (?,?,?,?,?,?)", (order_id, tool_name, item_qty, cf, ct, metric))
-        conn.commit()
-        conn.close()
+            for item in self.tool_order:
+                tool_name = item['tool_name'].strip()
+                item_qty = item['item_qty'].strip()
+                cf = item['cf']
+                ct = item['ct']
+                metric = item['metric']
+                c.execute("INSERT INTO order_detail (order_id, tool_name, item_qty, cf, ct, metric) VALUES (?,?,?,?,?,?)", (order_id, tool_name, item_qty, cf, ct, metric))
         self.reset()
         self.tool_order = []
+
         
     def reset(self):
         # reset the name field
@@ -119,30 +114,30 @@ class ToolOrder(ttk.Frame):
 
     def add_item_to_quantity_frame(self, event):
         selected_item = self.tool_listbox.get(self.tool_listbox.curselection())
-        self.row_count = self.row_count + 1
         item_label = ttk.Label(self.order_detail, text=selected_item)
-        item_label.grid(row=self.row_count, column=0, padx=5, pady=5)
-        
         item_qty = tk.Spinbox(self.order_detail, from_=1, to=20,width=3, wrap=True)
-        
-        item_qty.grid(row=self.row_count, column=1, padx=5, pady=5)
-        remove_btn = ttk.Button(self.order_detail, text="Remove", command=lambda: self.remove_item(item_label, item_qty, remove_btn,cf_checkbox,ct_checkbox,metric_checkbox))
-        remove_btn.grid(row=self.row_count, column=2, padx=5, pady=5)
+        remove_btn = ttk.Button(self.order_detail, text="Remove", 
+                                command=lambda: self.remove_item(item_label, item_qty, remove_btn, cf_checkbox, ct_checkbox, metric_checkbox))
         cf_var = tk.IntVar()
         ct_var = tk.IntVar()
         metric_var = tk.IntVar()
         cf_checkbox = ttk.Checkbutton(self.order_detail, text="Coolant Flush (CF)", variable=cf_var)
         ct_checkbox = ttk.Checkbutton(self.order_detail, text="Coolant Thru (CT)", variable=ct_var)
         metric_checkbox = ttk.Checkbutton(self.order_detail, text="Metric", variable=metric_var)
-        cf_checkbox.grid(row=self.row_count +1, column=0, padx=5, pady=5, sticky="W")
-        ct_checkbox.grid(row=self.row_count +1, column=1, padx=5, pady=5, sticky="W")
-        metric_checkbox.grid(row=self.row_count +1, column=2, padx=5, pady=5, sticky="W")
+
+        self.row_count += 2
+        item_label.grid(row=self.row_count - 1, column=0, padx=5, pady=5)
+        item_qty.grid(row=self.row_count - 1, column=1, padx=5, pady=5)
+        remove_btn.grid(row=self.row_count - 1, column=2, padx=5, pady=5)
+        cf_checkbox.grid(row=self.row_count, column=0, padx=5, pady=5, sticky="W")
+        ct_checkbox.grid(row=self.row_count, column=1, padx=5, pady=5, sticky="W")
+        metric_checkbox.grid(row=self.row_count, column=2, padx=5, pady=5, sticky="W")
+
         item_qty.config(command=lambda: self.update_tool_order(selected_item, item_qty.get(), cf_var.get(), ct_var.get(), metric_var.get()))
         cf_checkbox.config(command=lambda: self.update_tool_order(selected_item, item_qty.get(), cf_var.get(), ct_var.get(), metric_var.get()))
         ct_checkbox.config(command=lambda: self.update_tool_order(selected_item, item_qty.get(), cf_var.get(), ct_var.get(), metric_var.get()))
         metric_checkbox.config(command=lambda: self.update_tool_order(selected_item, item_qty.get(), cf_var.get(), ct_var.get(), metric_var.get()))
 
-        self.row_count = self.row_count + 1
         tool_order = {
         'tool_name': selected_item,
         'item_qty': item_qty.get(),
@@ -186,23 +181,27 @@ class ToolOrder(ttk.Frame):
             self.tool_listbox.insert(tk.END, self.items[i])
 
     def lower_case(self):
-        name = self.name_entry.get().lower()
-        name_parts = name.split(" ")
-        formatted_name = ".".join(name_parts)
-        self.name_entry.delete(0, 'end')
-        self.name_entry.insert(0, formatted_name)
-
+        if name := self.name_entry.get().strip():
+            name_parts = [part.capitalize() for part in name.lower().split(" ")]
+            formatted_name = ".".join(name_parts)
+            self.name_entry.delete(0, 'end')
+            self.name_entry.insert(0, formatted_name)
+        else:
+            messagebox.showerror("Error", "Name cannot be empty.")
+            self.name_entry.focus()
+            
     def create_widgets(self):
         self.name_label = ttk.Label(self.orderframe, text="Name: (first.last)*")
         self.name_entry = ttk.Entry(self.orderframe)
         self.name_entry.bind('<FocusOut>', lambda e: self.lower_case())
         self.machine_label = ttk.Label(self.orderframe, text="Machine:*")
         self.machine_combo = ttk.Combobox(self.orderframe, values=[f"HC-{i:02d}" for i in range(1,31)])
+        self.machine_combo['state']='readonly'
         self.part_label = ttk.Label(self.orderframe, text='Part Number*')
         self.part_entry =ttk.Entry(self.orderframe)
         self.needed_by_label = ttk.Label(self.orderframe, text="Needed by:")
         self.needed_by_date = ttk.Combobox(self.orderframe, values=["Today", "Tomorrow", "Day after tomorrow"])
-        self.needed_by_hour = tk.Spinbox(self.orderframe, from_=1, to=12,width=3, wrap=True)
+        self.needed_by_hour = tk.Spinbox(self.orderframe, from_=1, to=12,width=3, format="%02.0f", wrap=True)
         self.needed_by_minute = tk.Spinbox(self.orderframe, from_=0, to=59, width=3, format="%02.0f", wrap=True)
         self.needed_by_am_pm = ttk.Combobox(self.orderframe, values=["AM", "PM"], width=3)
         self.asap_var = tk.BooleanVar() # Create a variable to hold the checkbox's state
@@ -217,12 +216,16 @@ class ToolOrder(ttk.Frame):
 
     def update_time(self):
         now = datetime.datetime.now()
+        hour = ((now.hour % 12) + 1)
+        minute = now.minute
+        am_pm = "AM" if now.hour < 12 else "PM"
+
         self.needed_by_date.set("Today")
         self.needed_by_hour.delete(0, "end")
-        self.needed_by_hour.insert(0, (now.hour % 12) + 1)
+        self.needed_by_hour.insert(0, f"{hour:02}")
         self.needed_by_minute.delete(0, "end")
-        self.needed_by_minute.insert(0, now.minute)
-        self.needed_by_am_pm.set("AM" if now.hour < 12 else "PM")
+        self.needed_by_minute.insert(0, f"{minute:02}")
+        self.needed_by_am_pm.set(am_pm)
 
     def set_asap(self, event):
         if self.asap_var.get():
