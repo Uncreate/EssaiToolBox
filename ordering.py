@@ -235,10 +235,12 @@ class ToolOrder(ttk.Frame):
             self.needed_by_date.set("Today")
             # Set the needed_by_hour and needed_by_minute to the current time
             now = datetime.datetime.now()
+            self.hour = (now.hour % 12)
+            self.minute = now.minute
             self.needed_by_hour.delete(0, "end")
-            self.needed_by_hour.insert(0, (now.hour % 12))
+            self.needed_by_hour.insert(0, f"{self.hour:02}")
             self.needed_by_minute.delete(0, "end")
-            self.needed_by_minute.insert(0, now.minute)
+            self.needed_by_minute.insert(0, f"{self.minute:02}")
 
 
     def position_widgets(self):
