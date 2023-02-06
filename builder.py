@@ -7,13 +7,16 @@ import win32con
 import winreg as winreg
 import configparser
 from win32printing import Printer
+from tkinter import messagebox
+import json
 
 config = configparser.ConfigParser()
 
 config.read('config.ini')
-
+tool_items = config['PATHS']['tool_items']
 printer_name = config['SETTINGS']['Printer']
 db_path = config['PATHS']['tool_order_db']
+inv_path = config['PATHS']['inventory_db']
 class ViewOrders(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -21,15 +24,15 @@ class ViewOrders(ttk.Frame):
         self.create_widgets()
         self.populate_treeview()
         self.tree.bind("<<TreeviewSelect>>", self.show_order_details)
-        # self.details_tree.bind("<<TreeviewSelect>>", self.send_to_ecp)
-        self.complete_button = ttk.Button(self, text="Complete Order", command=self.complete_order)
-        self.complete_button.grid(row=10, column=0, padx=5, pady=5)
-        self.complete_button = ttk.Button(self, text="Reload Orders", command=self.reset_treeview)
-        self.complete_button.grid(row=10, column=1, padx=5, pady=5)
+        self.details_tree.bind("<<TreeviewSelect>>", self.invetory_viewer)
         self.position_widgets()
         self.pack()
 
     def create_widgets(self):
+        self.separator = ttk.Separator(self,orient="horizontal")
+        self.inventory_frame = ttk.LabelFrame(self, text="Inventory Details")
+        self.complete_button = ttk.Button(self, text="Complete Order", command=self.complete_order)
+        self.reset_button = ttk.Button(self, text="Reload Orders", command=self.reset_treeview)
         self.tree = ttk.Treeview(self, columns=("name", "machine", "part", "time", "comments"))#, "complete"))
         self.tree["columns"] = ("name", "machine", "part", "time", "comments")#, "complete")
         for col in self.tree["columns"]:
@@ -45,7 +48,6 @@ class ViewOrders(ttk.Frame):
         self.tree.heading("time", text="Needed by")
         self.tree.column("time", width=120, stretch=False)
         self.tree.heading("comments", text="Comments")
-        # self.tree.heading("complete", text="Complete")
         self.details_tree = ttk.Treeview(self, columns=("tool_name", "item_qty", "cf", "ct", "metric"))
         self.details_tree["columns"] = ("tool_name", "item_qty", "cf", "ct", "metric")
         for col in self.details_tree["columns"]:
@@ -56,14 +58,13 @@ class ViewOrders(ttk.Frame):
         self.details_tree.column("tool_name", width=85, stretch=False)
         self.details_tree.heading("item_qty", text="Quantity")
         self.details_tree.column("item_qty", width=85, stretch=False)
-        self.separator = ttk.Separator(self,orient="horizontal")
         self.details_tree.heading("cf", text="CF")
         self.details_tree.column("cf", width=50, stretch=False)
         self.details_tree.heading("ct", text="CT")
         self.details_tree.column("ct", width=50, stretch=False)
         self.details_tree.heading("metric", text="Metric")
         self.details_tree.column("metric", width=50, stretch=False)
-        
+    
     def reset_treeview(self):
         for i in self.tree.get_children():
             self.tree.delete(i)
@@ -73,8 +74,7 @@ class ViewOrders(ttk.Frame):
 
     def connect_to_db(self):
         try:
-            conn = sqlite3.connect(db_path)
-            return conn
+            return sqlite3.connect(db_path)
         except sqlite3.Error as e:
             print(f"Error connecting to database: {e}")
             return None
@@ -117,16 +117,15 @@ class ViewOrders(ttk.Frame):
 
 
     def _get_order_details(self, order_id):
-            try:
-                conn = sqlite3.connect(db_path)
-                c = conn.cursor()
-                c.execute("SELECT * FROM order_detail WHERE order_id=?", (order_id,))
-                order_details = c.fetchall()
-                return order_details
-            except Exception as e:
-                print(f"An error occurred while fetching order details: {e}")
-            finally:
-                conn.close()
+        try:
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            c.execute("SELECT * FROM order_detail WHERE order_id=?", (order_id,))
+            return c.fetchall()
+        except Exception as e:
+            print(f"An error occurred while fetching order details: {e}")
+        finally:
+            conn.close()
 
     def _insert_order_details_into_tree(self, order_details):
             for order in order_details:
@@ -142,7 +141,10 @@ class ViewOrders(ttk.Frame):
         self.tree.grid(row=0, column=0, columnspan=2,padx=15, pady=15, sticky='W')
         self.separator.grid(row=1,columnspan=2, sticky='EW')
         self.details_tree.grid(row=2, column=0, padx=15, pady=15,sticky='W')
-        
+        self.inventory_frame.grid(row=2,column=1,sticky='NSEW')
+        self.complete_button.grid(row=10, column=0, padx=5, pady=5)
+        self.reset_button.grid(row=10, column=1, padx=5, pady=5)
+
     def send_to_ecp(self, e):
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\MyApp')
         value, _ = winreg.QueryValueEx(key, 'MyValue')
@@ -183,7 +185,53 @@ class ViewOrders(ttk.Frame):
             for tool_name, qty in details:
                 printer.text(f"{str(tool_name)} - QTY={str(qty)}", font_config=font)
             printer.text(time, align="center")
+
+    def invetory_viewer(self, e):
+        with open(tool_items, "r") as file:
+            data = json.load(file)
+        selection = self.details_tree.selection()
+        if not selection:
+            return
+        child = selection[0]
+        essai_partNum = [item["sEssaiPartNum"] for item in data["ToolItems"] if item["sToolName"] == self.details_tree.item(child)['values'][0]]
+        if not essai_partNum:
+            return
         
+        sEssaiPartNum = essai_partNum[0]
+        tool_group_name = [item["sToolGroupName"] for item in data["ToolItems"] if item["sEssaiPartNum"] == sEssaiPartNum][0]
+
+        tool_group_names = {
+            "EM": "Endmill", "BA": "Ballmill", "BU": "Bullmill", "FM": "Facemill", 
+            "LP": "Lollipop mill", "DO": "Dovetail mill", "CM": "Chamfer mill", 
+            "CR": "Corner Round mill", "DA": "Double Angle Shank Cutter", 
+            "KC": "Key Cutter", "SS": "Slitter Saw", "SD": "Spot Drill", 
+            "CS": "Countersink", "DS": "Drill Stub", "DJ": "Drill Jobber", 
+            "DT": "Drill Taper", "CD": "Circuitboard Drill", "RM": "Reamer", 
+            "CT": "Cut Tap", "RT": "Roll Form Tap", "TM": "Thread Mill Straight", 
+            "DC": "Coolant Thru Drill", "TE": "Tapered Endmill"
+        }
+        full_name = tool_group_names.get(tool_group_name, "Unknown")
+
+        conn = sqlite3.connect(inv_path)
+        with conn:
+            c = conn.cursor()
+            c.execute("SELECT * FROM inventory WHERE sEssaiPartNum=?", (sEssaiPartNum,))
+            inventory_row = c.fetchone()
+            if not inventory_row:
+                return
+
+            labels = ["Essai Part Number:", "Tool Manufacturer:", "EDP Number:", 
+                    "Quantity on Hand:", "Tool Crib Location:", "Tool Group Name:"]
+            values = [inventory_row[0], inventory_row[1], inventory_row[2], 
+                    inventory_row[5], inventory_row[6], full_name]
+
+            for widget in self.inventory_frame.winfo_children():
+                widget.destroy()
+
+            for i, label in enumerate(labels):
+                ttk.Label(self.inventory_frame, text=label).grid(row=i, column=0, padx=5, pady=5)
+                ttk.Label(self.inventory_frame, text=values[i]).grid(row=i, column=1, padx=5, pady=5)
+
 if __name__ == "__main__":
     root = tk.Tk()
     root.iconbitmap("toolbox.ico")
