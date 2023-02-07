@@ -41,43 +41,48 @@ class ToolOrder(ttk.Frame):
         self.pack()
 
     def submit(self):
-        name = self.name_entry.get().strip()
-        part = self.part_entry.get().strip()
-        if not name or not part:
-            messagebox.showerror("Error", "Required fields are empty")
-            return
+        if messagebox.askyesno("Submit Order", "Please double check everything and make sure all information is correct.\n\n Is this order ready to be submitted?"):
+            name = self.name_entry.get().strip()
+            part = self.part_entry.get().strip()
+            if not name or not part:
+                messagebox.showerror("Error", "Required fields are empty")
+                return
 
-        date_str = self.needed_by_date.get()
-        if date_str == "Today":
-            date = datetime.datetime.now().date()
-        elif date_str == "Tomorrow":
-            date = (datetime.datetime.now() + datetime.timedelta(days=1)).date()
-        elif date_str == "Day after tomorrow":
-            date = (datetime.datetime.now() + datetime.timedelta(days=2)).date()
+            date_str = self.needed_by_date.get()
+            if date_str == "Today":
+                date = datetime.datetime.now().date()
+            elif date_str == "Tomorrow":
+                date = (datetime.datetime.now() + datetime.timedelta(days=1)).date()
+            elif date_str == "Day after tomorrow":
+                date = (datetime.datetime.now() + datetime.timedelta(days=2)).date()
+            else:
+                date = None
+            time = datetime.datetime.combine(date, datetime.datetime.strptime(f"{self.needed_by_hour.get()}:{self.needed_by_minute.get()}", "%H:%M").time())
+            time = time.strftime("%Y-%m-%d %H:%M")
+
+            comments = self.comments_text.get("1.0", tk.END).strip()
+            complete = 0
+
+            with sqlite3.connect(db_path) as conn:
+                c = conn.cursor()
+                c.execute('''CREATE TABLE IF NOT EXISTS orders
+                            (name text, machine text, part text, time text, comments text, complete integer)''')
+                c.execute("INSERT INTO orders VALUES (?,?,?,?,?,?)", (name, self.machine_combo.get(), part, time, comments, complete))
+                order_id = c.lastrowid
+
+                c.execute('''CREATE TABLE IF NOT EXISTS order_detail
+                            (order_id text, tool_name text,item_qty text, cf text,ct text, metric text)''')
+                for item in self.tool_order:
+                    tool_name = item['tool_name'].strip()
+                    item_qty = item['item_qty'].strip()
+                    cf = item['cf']
+                    ct = item['ct']
+                    metric = item['metric']
+                    c.execute("INSERT INTO order_detail (order_id, tool_name, item_qty, cf, ct, metric) VALUES (?,?,?,?,?,?)", (order_id, tool_name, item_qty, cf, ct, metric))
+            self.reset()
+            self.tool_order = []
         else:
-            date = None
-        time = f"{date} {self.needed_by_hour.get()}:{self.needed_by_minute.get()} {self.needed_by_am_pm.get()}"
-        comments = self.comments_text.get("1.0", tk.END).strip()
-        complete = 0
-
-        with sqlite3.connect(db_path) as conn:
-            c = conn.cursor()
-            c.execute('''CREATE TABLE IF NOT EXISTS orders
-                        (name text, machine text, part text, time text, comments text, complete integer)''')
-            c.execute("INSERT INTO orders VALUES (?,?,?,?,?,?)", (name, self.machine_combo.get(), part, time, comments, complete))
-            order_id = c.lastrowid
-
-            c.execute('''CREATE TABLE IF NOT EXISTS order_detail
-                        (order_id text, tool_name text,item_qty text, cf text,ct text, metric text)''')
-            for item in self.tool_order:
-                tool_name = item['tool_name'].strip()
-                item_qty = item['item_qty'].strip()
-                cf = item['cf']
-                ct = item['ct']
-                metric = item['metric']
-                c.execute("INSERT INTO order_detail (order_id, tool_name, item_qty, cf, ct, metric) VALUES (?,?,?,?,?,?)", (order_id, tool_name, item_qty, cf, ct, metric))
-        self.reset()
-        self.tool_order = []
+            return
 
         
     def reset(self):
@@ -201,7 +206,7 @@ class ToolOrder(ttk.Frame):
         self.part_entry =ttk.Entry(self.orderframe)
         self.needed_by_label = ttk.Label(self.orderframe, text="Needed by:")
         self.needed_by_date = ttk.Combobox(self.orderframe, values=["Today", "Tomorrow", "Day after tomorrow"])
-        self.needed_by_hour = tk.Spinbox(self.orderframe, from_=1, to=12,width=3, format="%02.0f", wrap=True)
+        self.needed_by_hour = tk.Spinbox(self.orderframe, from_=0, to=23,width=3, format="%02.0f", wrap=True)
         self.needed_by_minute = tk.Spinbox(self.orderframe, from_=0, to=59, width=3, format="%02.0f", wrap=True)
         self.needed_by_am_pm = ttk.Combobox(self.orderframe, values=["AM", "PM"], width=3)
         self.asap_var = tk.BooleanVar() # Create a variable to hold the checkbox's state
@@ -216,16 +221,16 @@ class ToolOrder(ttk.Frame):
 
     def update_time(self):
         now = datetime.datetime.now()
-        hour = ((now.hour % 12) + 1)
+        hour = ((now.hour) + 1)
         minute = now.minute
-        am_pm = "AM" if now.hour < 12 else "PM"
+        # am_pm = "AM" if now.hour < 12 else "PM"
 
         self.needed_by_date.set("Today")
         self.needed_by_hour.delete(0, "end")
         self.needed_by_hour.insert(0, f"{hour:02}")
         self.needed_by_minute.delete(0, "end")
         self.needed_by_minute.insert(0, f"{minute:02}")
-        self.needed_by_am_pm.set(am_pm)
+        #self.needed_by_am_pm.set(am_pm)
 
     def set_asap(self, event):
         if self.asap_var.get():
@@ -235,7 +240,7 @@ class ToolOrder(ttk.Frame):
             self.needed_by_date.set("Today")
             # Set the needed_by_hour and needed_by_minute to the current time
             now = datetime.datetime.now()
-            self.hour = (now.hour % 12)
+            self.hour = (now.hour)
             self.minute = now.minute
             self.needed_by_hour.delete(0, "end")
             self.needed_by_hour.insert(0, f"{self.hour:02}")
@@ -254,7 +259,7 @@ class ToolOrder(ttk.Frame):
         self.needed_by_date.grid(row=4,column=0,sticky="E")
         self.needed_by_hour.grid(row=4,column=1,sticky="E")
         self.needed_by_minute.grid(row=4,column=2,sticky="W")
-        self.needed_by_am_pm.grid(row=4,column=3,sticky="W")
+        # self.needed_by_am_pm.grid(row=4,column=3,sticky="W")
         self.asap_checkbox.grid(row=5)
         self.comments_label.grid(row=6,column=0,sticky="W")
         self.comments_text.grid(row=7,columnspan=4,sticky="W",padx=5)

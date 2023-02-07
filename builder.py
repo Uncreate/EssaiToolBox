@@ -35,6 +35,7 @@ class ViewOrders(ttk.Frame):
         self.complete_button = ttk.Button(self.button_frame, text="Complete Order", command=self.complete_order)
         self.reset_button = ttk.Button(self.button_frame, text="Reload Orders", command=self.reset_treeview)
         self.delete_button = ttk.Button(self.button_frame, text="Delete Order", command=self.delete_order)
+        self.delete_tool = ttk.Button(self.button_frame, text="Remove Tool", command=self.delete_tool_from_order)
         self.tree = ttk.Treeview(self, columns=("name", "machine", "part", "time", "comments"))#, "complete"))
         self.tree["columns"] = ("name", "machine", "part", "time", "comments")#, "complete")
         for col in self.tree["columns"]:
@@ -73,6 +74,7 @@ class ViewOrders(ttk.Frame):
             self.tree.delete(i)
         for i in self.details_tree.get_children():
             self.details_tree.delete(i)
+        self.existing_ids = []
         self.populate_treeview()
 
     def connect_to_db(self):
@@ -92,20 +94,21 @@ class ViewOrders(ttk.Frame):
                 self.tree.item(item, tags=("odd",))
         self.tree.tag_configure("odd", background="light blue")
 
+
     def populate_treeview(self):
         if conn := self.connect_to_db():
             with conn:
                 c = conn.cursor()
                 c.execute("SELECT rowid, * FROM orders WHERE complete = 0")
                 orders = c.fetchall()
-                orders = sorted(orders, key=lambda x: datetime.strptime(x[4], '%Y-%m-%d %I:%M %p'))
-                existing_ids = [self.tree.item(item)['text'] for item in self.tree.get_children()]
+                orders = sorted(orders, key=lambda x: (datetime.strptime(x[4], '%Y-%m-%d %H:%M')))
+                self.existing_ids = [self.tree.item(item)['text'] for item in self.tree.get_children()]
                 for order in orders:
-                    if order[0] not in existing_ids:
+                    if order[0] not in self.existing_ids:
                         self.tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))
                 self.sort_treeview()
         self.master.after(30000, self.populate_treeview)
-
+        
     
     def show_order_details(self, event):
         # clear the details_tree
@@ -148,6 +151,7 @@ class ViewOrders(ttk.Frame):
         self.complete_button.pack(side="left",padx=10)
         self.reset_button.pack(side="left",padx=10)
         self.delete_button.pack(side="left",padx=10)
+        self.delete_tool.pack(side="left", padx=10)
         self.button_frame.grid(row=10, column=0, columnspan=2, padx=5,pady=5)
 
     def send_to_ecp(self, e):
@@ -163,6 +167,7 @@ class ViewOrders(ttk.Frame):
 
     def complete_order(self):
         self.print_ticket()
+        self.inventory_update()
         if selected_item := self.tree.focus():
             order_id = self.tree.item(selected_item)['text']
             with sqlite3.connect(db_path) as conn:
@@ -171,6 +176,25 @@ class ViewOrders(ttk.Frame):
             self.tree.delete(*self.tree.get_children())
             self.populate_treeview()
     
+    def inventory_update(self):
+        with open(tool_items, "r") as file:
+            data = json.load(file)
+        conn = sqlite3.connect(inv_path)
+        cursor = conn.cursor()
+        for child in self.details_tree.get_children():
+            
+            tool_name = self.details_tree.item(child)['values'][0]
+            order_qty = self.details_tree.item(child)['values'][1]
+            print(tool_name)
+            print(order_qty)
+            essai_partNum = [item["sEssaiPartNum"] for item in data["ToolItems"] if item["sToolName"] == self.details_tree.item(item)['values'][0]]
+            print(essai_partNum)
+            cursor.execute("UPDATE inventory SET iQty = iQty - ? WHERE sEssaiPartNum = ?", (order_qty, essai_partNum))
+        conn.commit()
+        conn.close()
+
+
+
     def delete_order(self):
         if selected_item := self.tree.selection():
             if result := messagebox.askokcancel(
@@ -189,6 +213,25 @@ class ViewOrders(ttk.Frame):
         else:
             messagebox.showerror("Error", "No order selected")
 
+    def delete_tool_from_order(self):
+        if selected_item := self.details_tree.selection():
+            if result := messagebox.askyesno(
+                "Delete Tool", "Are you sure you want to delete this tool from the order?"
+            ):
+                order_id = self.details_tree.item(selected_item)['text']
+                tool_id = self.details_tree.item(selected_item)["values"][0]
+                print(order_id)
+                print(tool_id)
+                if conn := self.connect_to_db():
+                    c = conn.cursor()
+                    c.execute("DELETE FROM order_detail WHERE order_id = ? AND tool_name = ?", (order_id, tool_id))
+                    conn.commit()
+                    self.reset_treeview()
+                    messagebox.showinfo("Info", "Tool Deleted Successfully")
+                else:
+                    messagebox.showerror("Error", "Error connecting to the database")
+        else:
+            messagebox.showerror("Error", "No tool selected")
 
 
     def print_ticket(self):
