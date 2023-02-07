@@ -31,8 +31,10 @@ class ViewOrders(ttk.Frame):
     def create_widgets(self):
         self.separator = ttk.Separator(self,orient="horizontal")
         self.inventory_frame = ttk.LabelFrame(self, text="Inventory Details")
-        self.complete_button = ttk.Button(self, text="Complete Order", command=self.complete_order)
-        self.reset_button = ttk.Button(self, text="Reload Orders", command=self.reset_treeview)
+        self.button_frame = ttk.Frame(self)
+        self.complete_button = ttk.Button(self.button_frame, text="Complete Order", command=self.complete_order)
+        self.reset_button = ttk.Button(self.button_frame, text="Reload Orders", command=self.reset_treeview)
+        self.delete_button = ttk.Button(self.button_frame, text="Delete Order", command=self.delete_order)
         self.tree = ttk.Treeview(self, columns=("name", "machine", "part", "time", "comments"))#, "complete"))
         self.tree["columns"] = ("name", "machine", "part", "time", "comments")#, "complete")
         for col in self.tree["columns"]:
@@ -64,7 +66,8 @@ class ViewOrders(ttk.Frame):
         self.details_tree.column("ct", width=50, stretch=False)
         self.details_tree.heading("metric", text="Metric")
         self.details_tree.column("metric", width=50, stretch=False)
-    
+        
+
     def reset_treeview(self):
         for i in self.tree.get_children():
             self.tree.delete(i)
@@ -142,8 +145,10 @@ class ViewOrders(ttk.Frame):
         self.separator.grid(row=1,columnspan=2, sticky='EW')
         self.details_tree.grid(row=2, column=0, padx=15, pady=15,sticky='W')
         self.inventory_frame.grid(row=2,column=1,sticky='NSEW')
-        self.complete_button.grid(row=10, column=0, padx=5, pady=5)
-        self.reset_button.grid(row=10, column=1, padx=5, pady=5)
+        self.complete_button.pack(side="left",padx=10)
+        self.reset_button.pack(side="left",padx=10)
+        self.delete_button.pack(side="left",padx=10)
+        self.button_frame.grid(row=10, column=0, columnspan=2, padx=5,pady=5)
 
     def send_to_ecp(self, e):
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\MyApp')
@@ -165,7 +170,27 @@ class ViewOrders(ttk.Frame):
                 c.execute("UPDATE orders SET complete = 1 WHERE rowid = ?", (order_id,))
             self.tree.delete(*self.tree.get_children())
             self.populate_treeview()
-            
+    
+    def delete_order(self):
+        if selected_item := self.tree.selection():
+            if result := messagebox.askokcancel(
+                "Delete Order", "Are you sure you want to delete this order?"
+            ):
+                order_id = self.tree.item(selected_item)['text']
+                print(order_id)
+                if conn := self.connect_to_db():
+                    c = conn.cursor()
+                    c.execute("DELETE FROM orders WHERE rowid=?", (order_id,))
+                    conn.commit()
+                    self.reset_treeview()
+                    messagebox.showinfo("Info", "Order Deleted Successfully")
+                else:
+                    messagebox.showerror("Error", "Error connecting to the database")
+        else:
+            messagebox.showerror("Error", "No order selected")
+
+
+
     def print_ticket(self):
         font = {"height": 18}
         name = self.tree.item(self.tree.focus())['values'][0]
