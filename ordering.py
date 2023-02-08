@@ -41,48 +41,50 @@ class ToolOrder(ttk.Frame):
         self.pack()
 
     def submit(self):
-        if messagebox.askyesno("Submit Order", "Please double check everything and make sure all information is correct.\n\n Is this order ready to be submitted?"):
-            name = self.name_entry.get().strip()
-            part = self.part_entry.get().strip()
-            if not name or not part:
-                messagebox.showerror("Error", "Required fields are empty")
-                return
-
-            date_str = self.needed_by_date.get()
-            if date_str == "Today":
-                date = datetime.datetime.now().date()
-            elif date_str == "Tomorrow":
-                date = (datetime.datetime.now() + datetime.timedelta(days=1)).date()
-            elif date_str == "Day after tomorrow":
-                date = (datetime.datetime.now() + datetime.timedelta(days=2)).date()
-            else:
-                date = None
-            time = datetime.datetime.combine(date, datetime.datetime.strptime(f"{self.needed_by_hour.get()}:{self.needed_by_minute.get()}", "%H:%M").time())
-            time = time.strftime("%Y-%m-%d %H:%M")
-
-            comments = self.comments_text.get("1.0", tk.END).strip()
-            complete = 0
-
-            with sqlite3.connect(db_path) as conn:
-                c = conn.cursor()
-                c.execute('''CREATE TABLE IF NOT EXISTS orders
-                            (name text, machine text, part text, time text, comments text, complete integer)''')
-                c.execute("INSERT INTO orders VALUES (?,?,?,?,?,?)", (name, self.machine_combo.get(), part, time, comments, complete))
-                order_id = c.lastrowid
-
-                c.execute('''CREATE TABLE IF NOT EXISTS order_detail
-                            (order_id text, tool_name text,item_qty text, cf text,ct text, metric text)''')
-                for item in self.tool_order:
-                    tool_name = item['tool_name'].strip()
-                    item_qty = item['item_qty'].strip()
-                    cf = item['cf']
-                    ct = item['ct']
-                    metric = item['metric']
-                    c.execute("INSERT INTO order_detail (order_id, tool_name, item_qty, cf, ct, metric) VALUES (?,?,?,?,?,?)", (order_id, tool_name, item_qty, cf, ct, metric))
-            self.reset()
-            self.tool_order = []
-        else:
+        if not messagebox.askyesno(
+            "Submit Order",
+            "Please double check everything and make sure all information is correct.\n\n Is this order ready to be submitted?",
+        ):
             return
+        name = self.name_entry.get().strip()
+        part = self.part_entry.get().strip()
+        if not name or not part:
+            messagebox.showerror("Error", "Required fields are empty")
+            return
+
+        date_str = self.needed_by_date.get()
+        if date_str == "Today":
+            date = datetime.datetime.now().date()
+        elif date_str == "Tomorrow":
+            date = (datetime.datetime.now() + datetime.timedelta(days=1)).date()
+        elif date_str == "Day after tomorrow":
+            date = (datetime.datetime.now() + datetime.timedelta(days=2)).date()
+        else:
+            date = None
+        time = datetime.datetime.combine(date, datetime.datetime.strptime(f"{self.needed_by_hour.get()}:{self.needed_by_minute.get()}", "%H:%M").time())
+        time = time.strftime("%Y-%m-%d %H:%M")
+
+        comments = self.comments_text.get("1.0", tk.END).strip()
+        complete = 0
+
+        with sqlite3.connect(db_path) as conn:
+            c = conn.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS orders
+                            (name text, machine text, part text, time text, comments text, complete integer)''')
+            c.execute("INSERT INTO orders VALUES (?,?,?,?,?,?)", (name, self.machine_combo.get(), part, time, comments, complete))
+            order_id = c.lastrowid
+
+            c.execute('''CREATE TABLE IF NOT EXISTS order_detail
+                            (order_id text, tool_name text,item_qty text, cf text,ct text, metric text)''')
+            for item in self.tool_order:
+                tool_name = item['tool_name'].strip()
+                item_qty = item['item_qty'].strip()
+                cf = item['cf']
+                ct = item['ct']
+                metric = item['metric']
+                c.execute("INSERT INTO order_detail (order_id, tool_name, item_qty, cf, ct, metric) VALUES (?,?,?,?,?,?)", (order_id, tool_name, item_qty, cf, ct, metric))
+        self.reset()
+        self.tool_order = []
 
         
     def reset(self):
