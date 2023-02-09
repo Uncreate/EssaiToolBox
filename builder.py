@@ -5,11 +5,8 @@ import tkinter as tk
 import winreg as winreg
 from datetime import datetime
 from tkinter import messagebox, ttk
-
-import customtkinter as ctk
 import win32api
 import win32con
-import win32ui
 from win32printing import Printer
 
 config = configparser.ConfigParser()
@@ -235,12 +232,9 @@ class ViewOrders(ttk.Frame):
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\EssaiControlPanel')
         hwnd, _ = winreg.QueryValueEx(key, 'HWND')
         winreg.CloseKey(key)
-        print(hwnd)
         selected_item = self.details_tree.selection()[0]
         tool_name = self.details_tree.item(selected_item)['values'][0]
         tool_name_bytes = tool_name.encode('utf-8')
-        print(tool_name)
-        print(tool_name_bytes)
         win32api.SendMessage(hwnd, win32con.WM_COPYDATA, 0, tool_name_bytes)
 
     def complete_order(self):
