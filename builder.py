@@ -8,7 +8,8 @@ from tkinter import messagebox, ttk
 import win32api
 import win32con
 from win32printing import Printer
-
+import ctypes
+import ctypes.wintypes
 config = configparser.ConfigParser()
 
 config.read('config.ini')
@@ -221,21 +222,42 @@ class ViewOrders(ttk.Frame):
         self.separator.grid(row=1,columnspan=2, sticky='EW')
         self.details_tree.grid(row=2, column=0, padx=15, pady=15,sticky='W')
         self.inventory_frame.grid(row=2,column=1,sticky='NESW')
-        self.complete_button.pack(side="left",padx=10)
-        self.reset_button.pack(side="left",padx=10)
-        self.delete_button.pack(side="left",padx=10)
-        self.delete_tool.pack(side="left", padx=10)
-        self.button_frame.grid(row=10, column=0, columnspan=2, padx=5,pady=5)
-        self.test_button.pack()
+        self.button_frame.grid(row=10, column=0, columnspan=2, padx=5,pady=5,stick='EW')
+        
+        self.complete_button.grid(row=2,column=2, padx=5,pady=5, sticky='N')
+        self.reset_button.grid(row=0,column=0, padx=5,pady=5)
+        self.delete_button.grid(row=1,column=3, padx=5,pady=5)
+        self.delete_tool.grid(row=0,column=3, padx=5,pady=5, sticky='E')
+        self.test_button.grid(row=0,column=4,columnspan=2, padx=5,pady=5, sticky='E')
     
     def send_to_ecp(self, e):
+        SendMessage = ctypes.windll.user32.SendMessageW
+        class COPYDATASTRUCT(ctypes.Structure):
+            _fields_ = [
+                ('dwData', ctypes.wintypes.LPARAM),
+                ('cbData', ctypes.wintypes.DWORD),
+                ('lpData', ctypes.c_char_p) #('lpData', ctypes.c_wchar_p)  
+            ]
+
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\EssaiControlPanel')
         hwnd, _ = winreg.QueryValueEx(key, 'HWND')
         winreg.CloseKey(key)
+
         selected_item = self.details_tree.selection()[0]
         tool_name = self.details_tree.item(selected_item)['values'][0]
-        tool_name_bytes = tool_name.encode('utf-8')
-        win32api.SendMessage(hwnd, win32con.WM_COPYDATA, 0, tool_name_bytes)
+        print(tool_name)
+        tool_name_utf16 = tool_name.encode()#('utf-16')
+        print(tool_name_utf16)
+        cds = COPYDATASTRUCT()
+        cds.dwData = 55
+        #cds.cbData = len(tool_name_utf16)
+        #cds.lpData = tool_name_utf16.decode('utf-16')
+        cds.cbData = ctypes.sizeof(ctypes.create_string_buffer(tool_name_utf16))
+        cds.lpData = ctypes.c_char_p(tool_name_utf16)
+
+        SendMessage(hwnd, win32con.WM_COPYDATA, 0, ctypes.byref(cds))
+
+
 
     def complete_order(self):
         self.print_ticket()
@@ -368,6 +390,27 @@ class ViewOrders(ttk.Frame):
             for tool_name, qty in details:
                 printer.text(f"{str(tool_name)} - QTY={str(qty)}", font_config=font)
             printer.text(time, align="center")
+
+#class COPYDATASTRUCT(ctypes.Structure):
+#    _fields_ = [
+#        ('dwData', ctypes.wintypes.LPARAM),
+#        ('cbData', ctypes.wintypes.DWORD),
+#        ('lpData', ctypes.c_wchar_p) 
+#        #formally lpData is c_void_p, but we do it this way for convenience
+#    ]
+#key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\EssaiControlPanel')
+#hwnd, _ = winreg.QueryValueEx(key, 'HWND')
+## hwnd = FindWindow('TheNameOfMyWindowClass', None)
+#cds = COPYDATASTRUCT()
+#cds.dwData = 0
+#selected_item = ViewOrders.details_tree.selection()[0]
+#tool_name = ViewOrders.details_tree.item(selected_item)['values'][0]
+#tool_name_bytes = tool_name.encode('utf-8')
+## str = 'boo'
+#cds.cbData = ctypes.sizeof(ctypes.create_unicode_buffer(tool_name_bytes))
+#cds.lpData = ctypes.c_wchar_p(str)
+#
+#win32api.SendMessage(hwnd, win32con.WM_COPYDATA, 0, ctypes.byref(cds))
 
 if __name__ == "__main__":
     root = tk.Tk()
