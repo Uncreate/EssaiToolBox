@@ -97,12 +97,12 @@ class InventoryManager(tk.Toplevel):
 class ViewOrders(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-
+        self.last_order_data = None
         self.create_widgets()
         self.populate_treeview()
         self.tree.bind("<<TreeviewSelect>>", self.show_order_details)
-        self.details_tree.bind("<Button-1>", self.invetory_viewer)
-        self.details_tree.bind("<Double-Button-1>", self.send_to_ecp)
+        self.details_tree.bind("<<TreeviewSelect>>", self.invetory_viewer)
+        # self.details_tree.bind("<Double-Button-1>", self.send_to_ecp)
         self.position_widgets()
         self.pack()
 
@@ -146,7 +146,8 @@ class ViewOrders(ttk.Frame):
         self.details_tree.heading("metric", text="Metric")
         self.details_tree.column("metric", width=50, stretch=False)
         self.test_button=ttk.Button(self.button_frame,text="Inventory Management",command=InventoryManager)
-
+        self.reprint_ticket = ttk.Button(self.button_frame, text="Reprint Last Order", command=self.reprint_last_order)
+        self.spacer = ttk.Label(self.button_frame, text='')
     def reset_treeview(self):
         for i in self.tree.get_children():
             self.tree.delete(i)
@@ -180,9 +181,13 @@ class ViewOrders(ttk.Frame):
                 orders = c.fetchall()
                 orders = sorted(orders, key=lambda x: (datetime.strptime(x[4], '%Y-%m-%d %H:%M')))
                 self.existing_ids = [self.tree.item(item)['text'] for item in self.tree.get_children()]
+                for order_data in orders:
+                    order_id = order_data[0]
                 for order in orders:
                     if order[0] not in self.existing_ids:
                         self.tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))
+                        if self.last_order_data is None:
+                            self.last_order_data = order_data
                 self.sort_treeview()
         self.master.after(30000, self.populate_treeview)
     
@@ -228,35 +233,10 @@ class ViewOrders(ttk.Frame):
         self.reset_button.grid(row=0,column=0, padx=5,pady=5)
         self.delete_button.grid(row=1,column=3, padx=5,pady=5)
         self.delete_tool.grid(row=0,column=3, padx=5,pady=5, sticky='E')
-        self.test_button.grid(row=0,column=4,columnspan=2, padx=5,pady=5, sticky='E')
+        self.test_button.grid(row=0,column=5,columnspan=2, padx=5,pady=5, sticky='E')
+        self.reprint_ticket.grid(row=1,column=0,padx=5,pady=5)
+        self.spacer.grid(row=0, column=4)
     
-    def send_to_ecp(self, e):
-        SendMessage = ctypes.windll.user32.SendMessageW
-        class COPYDATASTRUCT(ctypes.Structure):
-            _fields_ = [
-                ('dwData', ctypes.wintypes.LPARAM),
-                ('cbData', ctypes.wintypes.DWORD),
-                ('lpData', ctypes.c_char_p) #('lpData', ctypes.c_wchar_p)  
-            ]
-
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\EssaiControlPanel')
-        hwnd, _ = winreg.QueryValueEx(key, 'HWND')
-        winreg.CloseKey(key)
-
-        selected_item = self.details_tree.selection()[0]
-        tool_name = self.details_tree.item(selected_item)['values'][0]
-        print(tool_name)
-        tool_name_utf16 = tool_name.encode()#('utf-16')
-        print(tool_name_utf16)
-        cds = COPYDATASTRUCT()
-        cds.dwData = 55
-        #cds.cbData = len(tool_name_utf16)
-        #cds.lpData = tool_name_utf16.decode('utf-16')
-        cds.cbData = ctypes.sizeof(ctypes.create_string_buffer(tool_name_utf16))
-        cds.lpData = ctypes.c_char_p(tool_name_utf16)
-
-        SendMessage(hwnd, win32con.WM_COPYDATA, 0, ctypes.byref(cds))
-
 
 
     def complete_order(self):
@@ -332,6 +312,7 @@ class ViewOrders(ttk.Frame):
             for i, label in enumerate(labels):
                 ttk.Label(self.inventory_frame, text=label).grid(row=i, column=0, padx=5, pady=5)
                 ttk.Label(self.inventory_frame, text=values[i]).grid(row=i, column=1, padx=5, pady=5)
+        self.send_to_ecp()
 
     def delete_order(self):
         if selected_item := self.tree.selection():
@@ -391,26 +372,39 @@ class ViewOrders(ttk.Frame):
                 printer.text(f"{str(tool_name)} - QTY={str(qty)}", font_config=font)
             printer.text(time, align="center")
 
-#class COPYDATASTRUCT(ctypes.Structure):
-#    _fields_ = [
-#        ('dwData', ctypes.wintypes.LPARAM),
-#        ('cbData', ctypes.wintypes.DWORD),
-#        ('lpData', ctypes.c_wchar_p) 
-#        #formally lpData is c_void_p, but we do it this way for convenience
-#    ]
-#key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\EssaiControlPanel')
-#hwnd, _ = winreg.QueryValueEx(key, 'HWND')
-## hwnd = FindWindow('TheNameOfMyWindowClass', None)
-#cds = COPYDATASTRUCT()
-#cds.dwData = 0
-#selected_item = ViewOrders.details_tree.selection()[0]
-#tool_name = ViewOrders.details_tree.item(selected_item)['values'][0]
-#tool_name_bytes = tool_name.encode('utf-8')
-## str = 'boo'
-#cds.cbData = ctypes.sizeof(ctypes.create_unicode_buffer(tool_name_bytes))
-#cds.lpData = ctypes.c_wchar_p(str)
-#
-#win32api.SendMessage(hwnd, win32con.WM_COPYDATA, 0, ctypes.byref(cds))
+    def reprint_last_order(self):
+        if self.last_order_data is not None:
+            # retrieve the data for the last order
+            order_id, order_data = self.last_order_data[0], self.last_order_data[1:]
+            print(order_id, order_data)
+    
+
+    def send_to_ecp(self):
+        SendMessage = ctypes.windll.user32.SendMessageW
+        class COPYDATASTRUCT(ctypes.Structure):
+            _fields_ = [
+                ('dwData', ctypes.wintypes.LPARAM),
+                ('cbData', ctypes.wintypes.DWORD),
+                ('lpData', ctypes.c_char_p) #('lpData', ctypes.c_wchar_p)  
+            ]
+
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\EssaiControlPanel')
+        hwnd, _ = winreg.QueryValueEx(key, 'HWND')
+        winreg.CloseKey(key)
+
+        selected_item = self.details_tree.selection()[0]
+        tool_name = self.details_tree.item(selected_item)['values'][0]
+        print(tool_name)
+        tool_name_utf16 = tool_name.encode()#('utf-16')
+        print(tool_name_utf16)
+        cds = COPYDATASTRUCT()
+        cds.dwData = 55
+        #cds.cbData = len(tool_name_utf16)
+        #cds.lpData = tool_name_utf16.decode('utf-16')
+        cds.cbData = ctypes.sizeof(ctypes.create_string_buffer(tool_name_utf16))
+        cds.lpData = ctypes.c_char_p(tool_name_utf16)
+
+        SendMessage(hwnd, win32con.WM_COPYDATA, 0, ctypes.byref(cds))
 
 if __name__ == "__main__":
     root = tk.Tk()
