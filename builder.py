@@ -1,15 +1,16 @@
 import configparser
+import ctypes
+import ctypes.wintypes
 import json
 import sqlite3
 import tkinter as tk
 import winreg as winreg
 from datetime import datetime
 from tkinter import messagebox, ttk
-import win32api
+
 import win32con
 from win32printing import Printer
-import ctypes
-import ctypes.wintypes
+
 config = configparser.ConfigParser()
 
 config.read('config.ini')
@@ -133,7 +134,7 @@ class ViewOrders(ttk.Frame):
         self.details_tree["columns"] = ("tool_name", "item_qty", "cf", "ct", "metric")
         for col in self.details_tree["columns"]:
             self.details_tree.column(col, anchor="center")
-        self.details_tree.heading("#0", text="Order ID")
+        self.details_tree.heading("#0", text="Item")
         self.details_tree.column("#0", width=55,stretch=False)
         self.details_tree.heading("tool_name", text="Tool Name")
         self.details_tree.column("tool_name", width=85, stretch=False)
@@ -187,7 +188,7 @@ class ViewOrders(ttk.Frame):
                     if order[0] not in self.existing_ids:
                         self.tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))
                         if self.last_order_data is None:
-                            self.last_order_data = order_data
+                            self.last_order_data = order_id
                 self.sort_treeview()
         self.master.after(30000, self.populate_treeview)
     
@@ -214,13 +215,22 @@ class ViewOrders(ttk.Frame):
             conn.close()
 
     def _insert_order_details_into_tree(self, order_details):
+        for counter, order in enumerate(order_details, start=1):
+            self.details_tree.insert("", tk.END, text=counter, values=(order[1], order[2], order[3], order[4], order[5]))
+        for i, item in enumerate(self.details_tree.get_children()):
+            if i % 2 == 0:
+                self.details_tree.item(item, tags=("odd",))
+
+        self.details_tree.tag_configure("odd", background="light blue")
+
+    '''def _insert_order_details_into_tree(self, order_details):
             for order in order_details:
                 self.details_tree.insert("", tk.END, text=order[0], values=(order[1], order[2], order[3], order[4], order[5]))
             for i, item in enumerate(self.details_tree.get_children()):
                 if i % 2 == 0:
                     self.details_tree.item(item, tags=("odd",))
 
-            self.details_tree.tag_configure("odd", background="light blue")
+            self.details_tree.tag_configure("odd", background="light blue")'''
 
     def position_widgets(self):
         self.tree.grid(row=0, column=0, columnspan=2,padx=15, pady=15, sticky='W')
@@ -360,6 +370,7 @@ class ViewOrders(ttk.Frame):
         time = datetime.now()
         time = time.strftime("%m/%d/%y, %H:%M")
         details = []
+        self.reprint = [(name, machine, partnum, time, details)]
         for child in self.details_tree.get_children():
             tool_name = self.details_tree.item(child)['values'][0]
             qty = self.details_tree.item(child)['values'][1]
@@ -373,12 +384,17 @@ class ViewOrders(ttk.Frame):
             printer.text(time, align="center")
 
     def reprint_last_order(self):
-        if self.last_order_data is not None:
-            # retrieve the data for the last order
-            order_id, order_data = self.last_order_data[0], self.last_order_data[1:]
-            print(order_id, order_data)
+        font = {"height": 18}
+        name, machine, partnum, time, details = self.reprint[-1]
+        with Printer(linegap=2, printer_name=printer_name) as printer:
+            printer.text(f"Name: {str(name)}", align="center", font_config=font)
+            printer.text(f"Machine Number: {str(machine)}", font_config=font)
+            printer.text(f"Part Number: {str(partnum)}", font_config=font)
+            for tool_name, qty in details:
+                printer.text(f"{str(tool_name)} - QTY={str(qty)}", font_config=font)
+            printer.text(time, align="center")
     
-
+    
     def send_to_ecp(self):
         SendMessage = ctypes.windll.user32.SendMessageW
         class COPYDATASTRUCT(ctypes.Structure):
@@ -394,9 +410,9 @@ class ViewOrders(ttk.Frame):
 
         selected_item = self.details_tree.selection()[0]
         tool_name = self.details_tree.item(selected_item)['values'][0]
-        print(tool_name)
+        # print(tool_name)
         tool_name_utf16 = tool_name.encode()#('utf-16')
-        print(tool_name_utf16)
+        # print(tool_name_utf16)
         cds = COPYDATASTRUCT()
         cds.dwData = 55
         #cds.cbData = len(tool_name_utf16)
