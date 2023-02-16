@@ -6,7 +6,7 @@ import subprocess
 import os
 # Import modules
 import notebook_displays
-import builder, ordering
+import builder, ordering, holder_viewer
 # Load Configuration File
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -64,16 +64,18 @@ frame1 = notebook_displays.OffsetUtilities(display, statusvar, sbar)
 frame2 = ordering.ToolOrder(display)
 frame3 = notebook_displays.Home(display)
 frame4 = builder.ViewOrders(display)
-#frame4 = notebook_displays.GraphFrame(display)
+frame5 = holder_viewer.ToolHolderViewer(display)
 frame1.pack()   
 frame2.pack()
 frame3.pack()
 frame4.pack(expand=True)
+frame5.pack()
 
 display.add(frame3, text="Home")
 display.add(frame1, text="Tool.t Utilies")
 display.add(frame4, text="Tool Builder")
 display.add(frame2, text="Tool Order")
+display.add(frame5, text="Tool Holder Viewer")
 
 
 root.mainloop()
