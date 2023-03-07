@@ -178,7 +178,7 @@ class ToolOrder(ttk.Frame):
                 items.extend(item['sToolName'] for item in data['ToolItems'])
         except FileNotFoundError:
             print("File not found")
-        except Exception as e:
+        except Exception:
             print("An error occurred while reading the file:")
             print(traceback.print_exc())
         return items

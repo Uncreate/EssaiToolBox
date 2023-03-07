@@ -3,13 +3,10 @@ import json
 import os
 import tkinter as tk
 from tkinter import ttk
-import datetime
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tool_table_parser as ttp
 
-import sqlite3
-import traceback
 
 class OffsetUtilities(ttk.Frame):
     def __init__(self, parent, statusvar, sbar):

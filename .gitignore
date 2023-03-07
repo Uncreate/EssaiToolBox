@@ -132,3 +132,24 @@ Data/tooldott/HP-22-tool.t
 Data/tooldott/HP-23-tool.t
 Data/tooldott/HP-24-tool.t
 Data/tooldott/HP-25-tool.t
+dist/dist.zip
+dist/matching_tools.csv
+dist/Tool Converter.exe
+build/Tool Converter/Analysis-00.toc
+build/Tool Converter/base_library.zip
+build/Tool Converter/EXE-00.toc
+build/Tool Converter/PKG-00.toc
+build/Tool Converter/PYZ-00.pyz
+build/Tool Converter/PYZ-00.toc
+build/Tool Converter/Tool Converter.exe.manifest
+build/Tool Converter/Tool Converter.pkg
+build/Tool Converter/Tree-00.toc
+build/Tool Converter/Tree-01.toc
+build/Tool Converter/Tree-02.toc
+build/Tool Converter/warn-Tool Converter.txt
+build/Tool Converter/xref-Tool Converter.html
+build/Tool Converter/localpycs/pyimod01_archive.pyc
+build/Tool Converter/localpycs/pyimod02_importers.pyc
+build/Tool Converter/localpycs/pyimod03_ctypes.pyc
+build/Tool Converter/localpycs/pyimod04_pywin32.pyc
+build/Tool Converter/localpycs/struct.pyc
