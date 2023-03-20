@@ -40,6 +40,13 @@ class InventoryManager(tk.Toplevel):
         self.entries = {}
         self.create_ui()
 
+        # Bind the <Return> event to the epn_entry widget
+        self.epn_entry.bind("<Return>", self.handle_search)
+
+    def handle_search(self, event):
+        # Call the search_inventory() method when the <Return> key is pressed
+        self.search_inventory()
+
     def create_ui(self):
         self.search_frame.grid(row=0, column=0)
         self.epn_label.pack(side="left", padx=10)
