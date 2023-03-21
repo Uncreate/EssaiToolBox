@@ -39,6 +39,7 @@ class InventoryManager(tk.Toplevel):
             self.button_frame, text="Update Inventory", command=self.update_inventory)
         self.entries = {}
         self.create_ui()
+        self.bind("<FocusIn>", lambda event: self.epn_entry.focus_set())
 
         # Bind the <Return> event to the epn_entry widget
         self.epn_entry.bind("<Return>", self.handle_search)
