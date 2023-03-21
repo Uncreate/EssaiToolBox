@@ -39,7 +39,7 @@ class InventoryManager(tk.Toplevel):
             self.button_frame, text="Update Inventory", command=self.update_inventory)
         self.entries = {}
         self.create_ui()
-        self.bind("<FocusIn>", lambda event: self.epn_entry.focus_set())
+        
 
         # Bind the <Return> event to the epn_entry widget
         self.epn_entry.bind("<Return>", self.handle_search)
@@ -106,6 +106,7 @@ class InventoryManager(tk.Toplevel):
             self.entries[label] = ttk.Entry(self.inventory)
             self.entries[label].grid(row=i, column=1, padx=5, pady=5)
             self.entries[label].insert(0, values[i])
+            self.entries["Essai Part Number:"].configure(state="readonly")
 
 
 class ViewOrders(ttk.Frame):
